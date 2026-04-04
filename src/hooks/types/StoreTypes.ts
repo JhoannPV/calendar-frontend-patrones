@@ -1,6 +1,8 @@
-import type { store } from "../../store";
+import { StoreGlobal } from "../../store";
 
-export type RootState = ReturnType<typeof store.getState>
+type AppStore = ReturnType<typeof StoreGlobal.getInstance>
+
+export type RootState = ReturnType<AppStore["getState"]>
 
 export interface LoginParams {
     email: string;
