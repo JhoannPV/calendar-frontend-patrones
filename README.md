@@ -1,75 +1,74 @@
-# React + TypeScript + Vite
+# Calendar Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion web para gestionar eventos de calendario. Permite autenticacion de usuarios, creacion y edicion de eventos, eliminacion y vistas por dia, semana, mes y agenda.
 
-Currently, two official plugins are available:
+Este frontend consume una API HTTP del proyecto backend y se ejecuta de forma independiente.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack Tecnologico
 
-## React Compiler
+- React 19 + Vite + TypeScript
+- Redux Toolkit
+- React Router
+- Axios
+- React Big Calendar
+- Bootstrap
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Estructura Principal
 
-Note: This will impact Vite dev & build performances.
+- src/auth: flujo de autenticacion
+- src/calendar: modulo de calendario (paginas, componentes y tipos)
+- src/store: slices y configuracion global de Redux
+- src/hooks: hooks personalizados para auth, calendario y UI
+- src/helpers: utilidades de fecha, mensajes y transformaciones
 
-## Expanding the ESLint configuration
+## Requisitos
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js 22 o superior recomendado
+- Yarn 1.22.x
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Si no tienes Yarn habilitado:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   corepack enable
+   corepack prepare yarn@1.22.22 --activate
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Instalacion
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1. Clonar el repositorio:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+   git clone https://github.com/JhoannPV/calendar-frontend-patrones.git
+   cd calendar-frontend-patrones
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. Configurar variables de entorno:
+
+- Crear el archivo .env en la raiz del proyecto.
+- Configurar la URL del backend (por ejemplo, VITE_API_URL).
+
+3. Instalar dependencias:
+
+   yarn install
+
+## Ejecucion
+
+- Desarrollo:
+
+   yarn dev
+
+- Build de produccion:
+
+   yarn build
+
+- Preview del build:
+
+   yarn preview
+
+Por defecto, Vite abre la app en http://localhost:5173.
+
+## Funcionalidades
+
+1. Crear evento con el boton +.
+2. Editar evento con doble clic.
+3. Eliminar evento seleccionado.
+4. Cambiar entre vistas dia, semana, mes y agenda.
+5. Mantener sesion con JWT.
+6. Ver calendario compartido entre usuarios.
+7. Restringir edicion y eliminacion a eventos del autor.
