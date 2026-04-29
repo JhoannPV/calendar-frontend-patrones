@@ -25,11 +25,19 @@ export const useCalendarStore = () => {
             if (calendarEvent._id) {
                 // Actualizando
                 const { data } = await api.put(`/events/update-event/${calendarEvent._id}`, calendarEvent);
-                dispatch(onUpdateEvent({ ...calendarEvent, user: data.event.user }));
+                dispatch(onUpdateEvent({
+                    ...data.event,
+                    start: new Date(data.event.start),
+                    end: new Date(data.event.end),
+                }));
             } else {
                 // Creando
                 const { data } = await api.post('/events/create-event', calendarEvent);
-                dispatch(onAddNewEvent({ ...calendarEvent, _id: data.event._id, user: data.event.user }));
+                dispatch(onAddNewEvent({
+                    ...data.event,
+                    start: new Date(data.event.start),
+                    end: new Date(data.event.end),
+                }));
             }
         } catch (error) {
             const { response } = error as ErrorResponse;

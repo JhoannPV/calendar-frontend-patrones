@@ -52,9 +52,11 @@ export const CalendarModal = () => {
 
     useEffect(() => {
         if (activeEvent !== null) {
-            setFormValues({ ...activeEvent as CalendarEventData });
+            const timeOut = setTimeout(() => {
+                setFormValues({ ...activeEvent });
+            }, 0);
+            return () => clearTimeout(timeOut);
         }
-
     }, [activeEvent])
 
     const onInputChange = ({ target }: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

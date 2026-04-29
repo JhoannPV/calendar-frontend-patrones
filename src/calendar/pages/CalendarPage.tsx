@@ -19,10 +19,10 @@ export const CalendarPage = () => {
     const eventStyleGetter = (event: CalendarEventData) => {
         const isMyEvent = (currentUser?._id === event.user?._id);
 
-        const colorEvent = event.bgColor;
+        const color = event.bgColor || '#347CF7';
 
         const style = {
-            backgroundColor: isMyEvent ? colorEvent || '#347CF7' : '#465660',
+            backgroundColor: isMyEvent ? color : '#465660',
             borderRadius: '0px',
             opacity: 0.8,
             color: 'white',
