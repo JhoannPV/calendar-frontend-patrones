@@ -7,3 +7,6 @@ export * from './components/FabAddNew';
 export * from './components/FabDelete';
 export * from './builders/EventBuilder';
 export * from './builders/DirectorEventBuilder';
+export * from './flyweight/calendar-type-flyweight/calendar-type-flyweight';
+export * from './flyweight/calendar-type-factory/calendar-type-factory';
+export * from './flyweight/calendar-type-event/calendar-type-event';

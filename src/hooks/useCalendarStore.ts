@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from "react-redux"
 import type { ErrorResponse, RootState } from ".";
 import { onAddNewEvent, onDeleteEvent, onLoadEvents, onSetActiveEvent, onUpdateEvent } from "../store";
-import type { CalendarEventData } from "../calendar";
+import type { CalendarCompleteEventData } from "../calendar";
 import { convertEventsToDateEvents } from "../helpers";
 import Swal from "sweetalert2";
 import { CalendarApi } from "../api";
@@ -15,11 +15,11 @@ export const useCalendarStore = () => {
         activeEvent,
     } = useSelector((state: RootState) => state.calendar);
 
-    const setActiveEvent = (calendarEvent: CalendarEventData | null) => {
+    const setActiveEvent = (calendarEvent: CalendarCompleteEventData | null) => {
         dispatch(onSetActiveEvent(calendarEvent));
     }
 
-    const startSavingEvent = async (calendarEvent: CalendarEventData) => {
+    const startSavingEvent = async (calendarEvent: CalendarCompleteEventData) => {
 
         try {
             if (calendarEvent._id) {
@@ -47,7 +47,7 @@ export const useCalendarStore = () => {
 
     const startDeletingEvent = async () => {
         try {
-            const activeEventId = activeEvent as CalendarEventData | null;
+            const activeEventId = activeEvent as CalendarCompleteEventData | null;
             const { data } = await api.delete(`/events/delete-event/${activeEventId?._id}`);
             Swal.fire('Evento eliminado', data.event.msg, 'success');
             await dispatch(onDeleteEvent());
@@ -60,7 +60,7 @@ export const useCalendarStore = () => {
     const startLoadingEvents = async () => {
         try {
             const { data } = await api.get('/events/get-events');
-            const events: CalendarEventData[] = convertEventsToDateEvents(data.events);
+            const events: CalendarCompleteEventData[] = convertEventsToDateEvents(data.events);
             dispatch(onLoadEvents(events));
 
         } catch (error) {

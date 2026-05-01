@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { CalendarEventData } from '../../calendar';
+import type { CalendarCompleteEventData } from '../../calendar';
 
 export const calendarSlice = createSlice({
     name: 'calendar',
     initialState: {
         isLoadingEvents: true,
-        events: [] as CalendarEventData[],
+        events: [] as CalendarCompleteEventData[],
         activeEvent: null,
     },
     reducers: {
@@ -35,7 +35,7 @@ export const calendarSlice = createSlice({
         onLoadEvents: (state, { payload = [] }) => {
             state.isLoadingEvents = false;
 
-            payload.forEach((event: CalendarEventData) => {
+            payload.forEach((event: CalendarCompleteEventData) => {
                 const exists = state.events.some(dbEvent => dbEvent._id === event._id);
                 if (!exists) {
                     state.events.push(event);

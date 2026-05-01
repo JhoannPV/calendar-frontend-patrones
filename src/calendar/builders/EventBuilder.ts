@@ -34,6 +34,7 @@ export class EventBuilder {
         return this;
     }
 
+
     public setUser(user?: CalendarEventData['user']): this {
         this.event.user = user;
         return this;

@@ -1,5 +1,5 @@
 import { addHours, differenceInSeconds } from 'date-fns';
-import { useEffect, useMemo, useState, type ChangeEvent, type SyntheticEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type SyntheticEvent } from 'react';
 
 import Modal from 'react-modal';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
 import { useCalendarStore, useUiStore } from '../../hooks';
-import { DirectorEventBuilder, type CalendarEventData } from '..';
+import { CalendarTypeEvent, CalendarTypeFactory, DirectorEventBuilder, categories, type CalendarCompleteEventData, type CalendarEventData, type CategoryKey } from '..';
 
 registerLocale('es', es)
 
@@ -33,6 +33,7 @@ export const CalendarModal = () => {
     const { activeEvent, setActiveEvent, startSavingEvent } = useCalendarStore();
     const { isDateModalOpen, closeDateModal } = useUiStore();
     const [formSubmitted, setFormSubmitted] = useState(false);
+    const calendarTypeFactoryRef = useRef(new CalendarTypeFactory());
 
     const [formValues, setFormValues] = useState<CalendarEventData>({
         title: '',
@@ -40,6 +41,8 @@ export const CalendarModal = () => {
         start: new Date(),
         end: addHours(new Date(), 2),
     });
+
+    const [category, setCategory] = useState<CategoryKey>('general');
 
     const titleClass = useMemo(() => {
         if (!formSubmitted) return '';
@@ -53,7 +56,10 @@ export const CalendarModal = () => {
     useEffect(() => {
         if (activeEvent !== null) {
             const timeOut = setTimeout(() => {
-                setFormValues({ ...activeEvent });
+                setFormValues({
+                    ...activeEvent
+                });
+                setCategory(activeEvent.category ?? 'general');
             }, 0);
             return () => clearTimeout(timeOut);
         }
@@ -64,6 +70,10 @@ export const CalendarModal = () => {
             ...formValues,
             [target.name]: target.value,
         });
+    }
+
+    const onCategoryChange = ({ target }: ChangeEvent<HTMLSelectElement>) => {
+        setCategory(target.value as CategoryKey);
     }
 
     const onDateChange = (event: Date | null, changing: StartOrEnd) => {
@@ -90,6 +100,8 @@ export const CalendarModal = () => {
         }
         if (formValues.title.length <= 0) return;
 
+        const calendarType = calendarTypeFactoryRef.current.getCalendarType(category);
+
         const builderEvent = new DirectorEventBuilder().createEventComplete()
             .setTitle(formValues.title)
             .setNotes(formValues.notes)
@@ -100,7 +112,9 @@ export const CalendarModal = () => {
             .setId(formValues._id)
             .build();
 
-        await startSavingEvent(builderEvent);
+        const calendarEvent: CalendarCompleteEventData = new CalendarTypeEvent(builderEvent, calendarType).getEventComplete();
+
+        await startSavingEvent(calendarEvent);
         closeDateModal();
         setActiveEvent(null);
         setFormSubmitted(false);
@@ -175,6 +189,25 @@ export const CalendarModal = () => {
                     ></textarea>
                     <small id="emailHelp" className="form-text text-muted">Información adicional</small>
                 </div>
+
+                <div className="form-group mb-2">
+                    <label>Categoría</label>
+                    <select
+                        className="form-select"
+                        name="category"
+                        value={category}
+                        onChange={onCategoryChange}
+                    >
+                        {(Object.keys(categories) as CategoryKey[]).map((key) => (
+                            <option key={key} value={key}>
+                                {categories[key]}
+                            </option>
+                        ))}
+                    </select>
+                    <small id="emailHelp" className="form-text text-muted">Clasifica el evento</small>
+                </div>
+
+
 
                 <button
                     type="submit"
