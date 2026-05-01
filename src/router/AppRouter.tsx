@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router"
 import { LoginPage } from "../auth";
-import { CalendarPage } from "../calendar";
+import { CalendarPage, MyEventsPage } from "../calendar";
 import { useAuthStore } from "../hooks";
 import { useEffect } from "react";
 
@@ -33,6 +33,7 @@ export const AppRouter = () => {
                         : (
                             <>
                                 <Route path="/" element={<CalendarPage />} />
+                                <Route path="/my-events" element={<MyEventsPage />} />
                                 <Route path="/*" element={<Navigate to="/" />} />
                             </>
                         )

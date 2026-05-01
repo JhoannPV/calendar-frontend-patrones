@@ -1,4 +1,5 @@
 export * from './pages/CalendarPage';
+export * from './pages/MyEventsPage';
 export * from './components/Navbar';
 export * from './components/CalendarEvent';
 export * from './types/CalendarTypes';
