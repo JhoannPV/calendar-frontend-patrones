@@ -11,3 +11,5 @@ export * from './builders/DirectorEventBuilder';
 export * from './flyweight/calendar-type-flyweight/calendar-type-flyweight';
 export * from './flyweight/calendar-type-factory/calendar-type-factory';
 export * from './flyweight/calendar-type-event/calendar-type-event';
+export { CalendarEventCard, LightThemeImplementor, DarkThemeImplementor } from './bridge';
+export type { IThemeImplementor, ThemeStyles } from './bridge';
