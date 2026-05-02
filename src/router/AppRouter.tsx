@@ -1,17 +1,27 @@
+// src/router/AppRouter.tsx
+
 import { Navigate, Route, Routes } from "react-router"
 import { LoginPage } from "../auth";
 import { CalendarPage, MyEventsPage } from "../calendar";
 import { useAuthStore } from "../hooks";
+import { useCalendarStore } from "../hooks";
 import { useEffect } from "react";
 
 export const AppRouter = () => {
     const { status, checkAuthToken } = useAuthStore();
+    const { startLoadingEvents } = useCalendarStore();
 
     useEffect(() => {
         if (status === 'checking') {
             checkAuthToken();
         }
-    }, [status, checkAuthToken])
+    }, [status, checkAuthToken]);
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            startLoadingEvents();
+        }
+    }, [status, startLoadingEvents]);
 
     if (status === 'checking') {
         return (
