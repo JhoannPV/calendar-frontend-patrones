@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { categories, type CalendarCompleteEventData, type CategoryKey } from '..';
 import { CalendarEventCard, DarkThemeImplementor, LightThemeImplementor } from '../bridge';
 import type { IThemeImplementor } from '../bridge';
+import { CalendarEventComposite, CalendarCompositeCard } from '../composite';
 import { useAuthStore, useCalendarStore } from '../../hooks';
 import { Navbar } from '../components/Navbar';
 
@@ -50,6 +51,12 @@ export const MyEventsPage = () => {
         return result;
     }, [myEvents, selectedCategory, titleFilter]);
 
+    // COMPOSITE — árbol agrupado por categoría (sobre myEvents, no filteredEvents)
+    const compositeTree = useMemo(() => {
+        if (myEvents.length === 0) return null;
+        return CalendarEventComposite.buildFromEvents(myEvents);
+    }, [myEvents]);
+
     const handleGoBack = () => navigate('/');
 
     const getCategoryLabel = (category: CategoryKey) => categories[category];
@@ -59,7 +66,7 @@ export const MyEventsPage = () => {
             <Navbar />
             <div className="container mt-4">
 
-                {/* Header con botones — BRIDGE toggle aquí */}
+                {/* Header con botones */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <h1>Mis Eventos</h1>
                     <div className="d-flex gap-2">
@@ -119,7 +126,7 @@ export const MyEventsPage = () => {
                     </select>
                 </div>
 
-                {/* Lista de eventos — BRIDGE aplicado en CalendarEventCard */}
+                {/* Lista de eventos — BRIDGE */}
                 <div className="row">
                     {filteredEvents.length === 0 ? (
                         <div className="col-12">
@@ -134,17 +141,22 @@ export const MyEventsPage = () => {
                     ) : (
                         filteredEvents.map((event: CalendarCompleteEventData) => (
                             <div key={event._id} className="col-md-6 col-lg-4 mb-3">
-                                {/*
-                                 * BRIDGE en acción:
-                                 * CalendarEventCard (abstracción) no sabe nada del tema.
-                                 * Recibe el implementor concreto (light o dark) como prop
-                                 * y delega 100% de los estilos a él.
-                                 */}
                                 <CalendarEventCard event={event} theme={theme} />
                             </div>
                         ))
                     )}
                 </div>
+
+                {/* Vista agrupada — COMPOSITE */}
+                {compositeTree && (
+                    <div className="mt-5">
+                        <h5 style={{ color: theme.getStyles().titleColor }} className="mb-3">
+                            <i className="fas fa-layer-group"></i>
+                            &nbsp; Vista agrupada por categoría (Composite)
+                        </h5>
+                        <CalendarCompositeCard component={compositeTree} theme={theme} />
+                    </div>
+                )}
 
             </div>
         </>
