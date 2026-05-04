@@ -12,36 +12,35 @@ export const calendarSlice = createSlice({
         onSetActiveEvent: (state, { payload }) => {
             state.activeEvent = payload;
         },
+
         onAddNewEvent: (state, { payload }) => {
             state.events.push(payload);
             state.activeEvent = null;
         },
+
         onUpdateEvent: (state, { payload }) => {
-            state.events = state.events.map(event => {
-                if (event._id === payload._id) {
-                    return payload;
-                }
-                return event;
-            });
+            // CORREGIDO: comparar por id (sin guión bajo)
+            state.events = state.events.map(event =>
+                event.id === payload.id ? payload : event
+            );
         },
+
         onDeleteEvent: (state) => {
             if (state.activeEvent) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-expect-error
-                state.events = state.events.filter(event => event._id !== state.activeEvent._id);
+                const active = state.activeEvent as CalendarCompleteEventData;
+                // CORREGIDO: comparar por id (sin guión bajo)
+                state.events = state.events.filter(event => event.id !== active.id);
                 state.activeEvent = null;
             }
         },
+
         onLoadEvents: (state, { payload = [] }) => {
             state.isLoadingEvents = false;
-
-            payload.forEach((event: CalendarCompleteEventData) => {
-                const exists = state.events.some(dbEvent => dbEvent._id === event._id);
-                if (!exists) {
-                    state.events.push(event);
-                }
-            });
+            // CORREGIDO: reemplaza todo en vez de hacer push
+            // así no hay duplicados al recargar la página
+            state.events = payload;
         },
+
         onLogoutCalendar: (state) => {
             state.isLoadingEvents = true;
             state.events = [];
@@ -50,6 +49,11 @@ export const calendarSlice = createSlice({
     }
 });
 
-
-// Action creators are generated for each case reducer function
-export const { onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents, onLogoutCalendar } = calendarSlice.actions;
+export const {
+    onSetActiveEvent,
+    onAddNewEvent,
+    onUpdateEvent,
+    onDeleteEvent,
+    onLoadEvents,
+    onLogoutCalendar
+} = calendarSlice.actions;

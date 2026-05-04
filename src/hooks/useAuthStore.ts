@@ -15,7 +15,8 @@ export const useAuthStore = () => {
             const { data } = await api.post('/auth/login', { email, password });
             localStorage.setItem('token', data.token);
             localStorage.setItem('token-init-date', new Date().getTime().toString());
-            dispatch(onLogin({ name: data.user.name, _id: data.user.id }));
+            // FIX: id en vez de _id
+            dispatch(onLogin({ name: data.user.name, id: data.user.id }));
         } catch (error) {
             const { response } = error as ErrorResponse;
             if (response.data?.error) {
@@ -27,9 +28,7 @@ export const useAuthStore = () => {
                 const msg = buildErrorMessage(respEmail, respPassword);
                 dispatch(onLogout(msg));
             }
-            setTimeout(() => {
-                dispatch(clearErrorMessage());
-            }, 10);
+            setTimeout(() => dispatch(clearErrorMessage()), 10);
         }
     }
 
@@ -39,7 +38,8 @@ export const useAuthStore = () => {
             const { data } = await api.post('/auth/register', { name, email, password });
             localStorage.setItem('token', data.token);
             localStorage.setItem('token-init-date', new Date().getTime().toString());
-            dispatch(onLogin({ name: data.user.name, _id: data.user.id }));
+            // FIX: id en vez de _id
+            dispatch(onLogin({ name: data.user.name, id: data.user.id }));
         } catch (error) {
             const { response } = error as ErrorResponse;
             if (response.data?.error) {
@@ -52,9 +52,7 @@ export const useAuthStore = () => {
                 const msg = buildErrorMessage(respName, respEmail, respPassword);
                 dispatch(onLogout(msg));
             }
-            setTimeout(() => {
-                dispatch(clearErrorMessage());
-            }, 10);
+            setTimeout(() => dispatch(clearErrorMessage()), 10);
         }
     }
 
@@ -65,7 +63,8 @@ export const useAuthStore = () => {
             const { data } = await api.get('/auth/renew-token');
             localStorage.setItem('token', data.token);
             localStorage.setItem('token-init-date', new Date().getTime().toString());
-            dispatch(onLogin({ name: data.user.name, _id: data.user.id }));
+            // FIX: id en vez de _id
+            dispatch(onLogin({ name: data.user.name, id: data.user.id }));
         } catch (error) {
             const { response } = error as ErrorResponse;
             localStorage.clear();

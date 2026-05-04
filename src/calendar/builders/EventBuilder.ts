@@ -3,10 +3,10 @@ import type { CalendarEventData } from '..';
 
 export class EventBuilder {
     private event: Partial<CalendarEventData> = {
-        title: '',
-        notes: '',
-        start: new Date(),
-        end: addHours(new Date(), 2),
+        title:  '',
+        notes:  '',
+        start:  new Date(),
+        end:    addHours(new Date(), 2),
     };
 
     public setTitle(title: string): this {
@@ -34,14 +34,18 @@ export class EventBuilder {
         return this;
     }
 
-
     public setUser(user?: CalendarEventData['user']): this {
         this.event.user = user;
         return this;
     }
 
     public setId(id?: string): this {
-        this.event._id = id;
+        this.event.id = id;
+        return this;
+    }
+
+    public setPadre(padre?: string | null): this {  // NUEVO
+        this.event.padre = padre ?? undefined;
         return this;
     }
 
