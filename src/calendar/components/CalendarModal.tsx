@@ -1,3 +1,5 @@
+// src/calendar/components/CalendarModal.tsx
+
 import { addHours, differenceInSeconds } from 'date-fns';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type SyntheticEvent } from 'react';
 
@@ -9,10 +11,18 @@ import { es } from 'date-fns/locale/es';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
-import { useCalendarStore, useUiStore } from '../../hooks';
-import { CalendarTypeEvent, CalendarTypeFactory, DirectorEventBuilder, categories, type CalendarCompleteEventData, type CalendarEventData, type CategoryKey } from '..';
+import { useCalendarStore, useUiStore, useAuthStore } from '../../hooks';
+import {
+    CalendarTypeEvent,
+    CalendarTypeFactory,
+    DirectorEventBuilder,
+    categories,
+    type CalendarCompleteEventData,
+    type CalendarEventData,
+    type CategoryKey,
+} from '..';
 
-registerLocale('es', es)
+registerLocale('es', es);
 
 const customStyles = {
     content: {
@@ -30,8 +40,10 @@ Modal.setAppElement('#root');
 type StartOrEnd = 'start' | 'end';
 
 export const CalendarModal = () => {
-    const { activeEvent, setActiveEvent, startSavingEvent } = useCalendarStore();
+    const { activeEvent, setActiveEvent, startSavingEvent, events } = useCalendarStore();
     const { isDateModalOpen, closeDateModal } = useUiStore();
+    const { user } = useAuthStore();
+
     const [formSubmitted, setFormSubmitted] = useState(false);
     const calendarTypeFactoryRef = useRef(new CalendarTypeFactory());
 
@@ -44,60 +56,65 @@ export const CalendarModal = () => {
 
     const [category, setCategory] = useState<CategoryKey>('general');
 
+    // COMPOSITE — estado del padre seleccionado
+    const [selectedPadre, setSelectedPadre] = useState<string>('');
+
+    // Eventos disponibles como padre: del usuario actual, sin padre propio,
+    // y que no sea el mismo evento que se está editando
+    const parentOptions = useMemo(() => {
+        return events.filter((e: CalendarCompleteEventData) =>
+            e.user?.id === (user as { id?: string })?.id &&
+            !e.padre &&
+            e.id !== activeEvent?.id
+        );
+    }, [events, user, activeEvent?.id]);
+
     const titleClass = useMemo(() => {
         if (!formSubmitted) return '';
-
-        return (formValues.title.length > 0)
-            ? 'is-valid'
-            : 'is-invalid'
-
+        return formValues.title.length > 0 ? 'is-valid' : 'is-invalid';
     }, [formValues.title, formSubmitted]);
 
     useEffect(() => {
         if (activeEvent !== null) {
             const timeOut = setTimeout(() => {
-                setFormValues({
-                    ...activeEvent
-                });
+                setFormValues({ ...activeEvent });
                 setCategory(activeEvent.category ?? 'general');
+                // COMPOSITE — cargar padre si el evento ya tiene uno
+                setSelectedPadre(activeEvent.padre ?? '');
             }, 0);
             return () => clearTimeout(timeOut);
         }
-    }, [activeEvent])
+    }, [activeEvent]);
 
     const onInputChange = ({ target }: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormValues({
-            ...formValues,
-            [target.name]: target.value,
-        });
-    }
+        setFormValues({ ...formValues, [target.name]: target.value });
+    };
 
     const onCategoryChange = ({ target }: ChangeEvent<HTMLSelectElement>) => {
         setCategory(target.value as CategoryKey);
-    }
+    };
 
     const onDateChange = (event: Date | null, changing: StartOrEnd) => {
-        setFormValues({
-            ...formValues,
-            [changing]: event,
-        });
-    }
+        setFormValues({ ...formValues, [changing]: event });
+    };
 
     const onCloseModal = () => {
         closeDateModal();
         setActiveEvent(null);
-    }
+        setSelectedPadre(''); // COMPOSITE — limpiar al cerrar
+    };
 
     const onSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         setFormSubmitted(true);
 
-        const different = differenceInSeconds(formValues.end, formValues.start)
+        const different = differenceInSeconds(formValues.end as Date, formValues.start as Date);
 
         if (isNaN(different) || different <= 0) {
-            Swal.fire('Fechas incorrectas', 'Revisar las fechas ingresadas', 'error')
+            Swal.fire('Fechas incorrectas', 'Revisar las fechas ingresadas', 'error');
             return;
         }
+
         if (formValues.title.length <= 0) return;
 
         const calendarType = calendarTypeFactoryRef.current.getCalendarType(category);
@@ -109,16 +126,19 @@ export const CalendarModal = () => {
             .setEnd(formValues.end)
             .setBgColor(formValues.bgColor)
             .setUser(formValues.user)
-            .setId(formValues._id)
+            .setId(formValues.id)
+            .setPadre(selectedPadre || null) // COMPOSITE
             .build();
 
-        const calendarEvent: CalendarCompleteEventData = new CalendarTypeEvent(builderEvent, calendarType).getEventComplete();
+        const calendarEvent: CalendarCompleteEventData =
+            new CalendarTypeEvent(builderEvent, calendarType).getEventComplete();
 
         await startSavingEvent(calendarEvent);
         closeDateModal();
         setActiveEvent(null);
         setFormSubmitted(false);
-    }
+        setSelectedPadre(''); // COMPOSITE — limpiar al guardar
+    };
 
     return (
         <Modal
@@ -140,11 +160,12 @@ export const CalendarModal = () => {
                     <DatePicker
                         selected={formValues.start as Date}
                         onChange={(event: Date | null) => onDateChange(event, 'start')}
-                        className='form-control'
+                        className="form-control"
                         dateFormat="Pp"
                         showTimeSelect
                         locale="es"
-                        timeCaption='Hora'
+                        timeCaption="Hora"
+                        minDate={new Date(new Date().setHours(0, 0, 0, 0))}   // no permite fechas pasadas
                     />
                 </div>
 
@@ -155,15 +176,16 @@ export const CalendarModal = () => {
                         minDate={formValues.start as Date}
                         selected={formValues.end as Date}
                         onChange={(event: Date | null) => onDateChange(event, 'end')}
-                        className='form-control'
+                        className="form-control"
                         dateFormat="Pp"
                         showTimeSelect
                         locale="es"
-                        timeCaption='Hora'
+                        timeCaption="Hora"
                     />
                 </div>
 
                 <hr />
+
                 <div className="form-group mb-2">
                     <label>Titulo y notas</label>
                     <input
@@ -175,7 +197,7 @@ export const CalendarModal = () => {
                         value={formValues.title}
                         onChange={onInputChange}
                     />
-                    <small id="emailHelp" className="form-text text-muted">Una descripción corta</small>
+                    <small className="form-text text-muted">Una descripción corta</small>
                 </div>
 
                 <div className="form-group mb-2">
@@ -186,8 +208,8 @@ export const CalendarModal = () => {
                         name="notes"
                         value={formValues.notes}
                         onChange={onInputChange}
-                    ></textarea>
-                    <small id="emailHelp" className="form-text text-muted">Información adicional</small>
+                    />
+                    <small className="form-text text-muted">Información adicional</small>
                 </div>
 
                 <div className="form-group mb-2">
@@ -204,20 +226,35 @@ export const CalendarModal = () => {
                             </option>
                         ))}
                     </select>
-                    <small id="emailHelp" className="form-text text-muted">Clasifica el evento</small>
+                    <small className="form-text text-muted">Clasifica el evento</small>
                 </div>
 
+                {/* COMPOSITE — selector de evento padre (opcional) */}
+                <div className="form-group mb-3">
+                    <label>Agrupar bajo un evento mayor</label>
+                    <select
+                        className="form-select"
+                        value={selectedPadre}
+                        onChange={(e) => setSelectedPadre(e.target.value)}
+                    >
+                        <option value="">— Sin grupo (evento independiente) —</option>
+                        {parentOptions.map((ev: CalendarCompleteEventData) => (
+                            <option key={ev.id} value={ev.id}>
+                                {ev.title}
+                            </option>
+                        ))}
+                    </select>
+                    <small className="form-text text-muted">
+                        Opcional — si eliges un evento mayor, este será un sub-evento
+                    </small>
+                </div>
 
-
-                <button
-                    type="submit"
-                    className="btn btn-outline-primary btn-block"
-                >
+                <button type="submit" className="btn btn-outline-primary btn-block">
                     <i className="far fa-save"></i>
                     <span> Guardar</span>
                 </button>
 
             </form>
         </Modal>
-    )
-}
+    );
+};

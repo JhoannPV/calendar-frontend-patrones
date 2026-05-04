@@ -5,6 +5,9 @@ interface ICalendarTypeFlyweight {
 }
 
 export class CalendarTypeFlyweight {
+    getEventComplete(): CalendarTypeFlyweight {
+        throw new Error('Method not implemented.');
+    }
     private readonly data: ICalendarTypeFlyweight;
 
     constructor(data: ICalendarTypeFlyweight) {
