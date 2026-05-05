@@ -48,7 +48,7 @@ export const CalendarPage = () => {
     }, [events, parentIds]);
 
     const eventStyleGetter = (event: CalendarCompleteEventData) => {
-        const isMyEvent = currentUser?.id === event.user?.id;
+        const isMyEvent = currentUser?._id === event.user?._id;
         const color     = event.bgColor || '#347CF7';
         return {
             style: {

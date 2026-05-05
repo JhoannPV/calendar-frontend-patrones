@@ -1,7 +1,13 @@
 import type { CalendarEventData } from '..';
 
+// Tipo interno que permite undefined en todas las propiedades excepto start/end que permiten null
+type EventDraft = Omit<Partial<CalendarEventData>, 'start' | 'end'> & {
+    start: Date | string | null;
+    end:   Date | string | null;
+};
+
 export class EventBuilder {
-    private event: Partial<CalendarEventData> = {
+    private event: EventDraft = {
         title: '',
         notes: '',
         start: null,

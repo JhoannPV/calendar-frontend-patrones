@@ -1,5 +1,3 @@
-// src/calendar/pages/MyEventsPage.tsx
-
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -13,28 +11,20 @@ import { CompositeNode } from '../composite/composite-node';
 import { LeafNode } from '../composite/leaf-node';
 import type { ICalendarNode } from '../composite/calendar-node.interface';
 
-interface AuthUser {
-    _id: string;
-    name: string;
-}
-
-const getUserId = (user: { _id?: string; id?: string } | null | undefined) => user?._id ?? user?.id ?? null;
-
+interface AuthUser { id: string; name: string; }
 
 export const MyEventsPage = () => {
-    const { user }                                              = useAuthStore();
+    const { user }                                               = useAuthStore();
     const { events, startLoadingEvents, startDeletingEventById } = useCalendarStore();
-    const navigate                                              = useNavigate();
+    const navigate                                               = useNavigate();
 
     const [selectedCategory, setSelectedCategory] = useState<CategoryKey | 'all'>('all');
     const [titleFilter, setTitleFilter]           = useState('');
     const [theme, setTheme] = useState<IThemeImplementor>(new LightThemeImplementor());
 
     useEffect(() => {
-        if (events.length === 0) {
-            startLoadingEvents();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (events.length === 0) startLoadingEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleTheme = () =>
@@ -45,13 +35,9 @@ export const MyEventsPage = () => {
         );
 
     const myEvents = useMemo(() => {
-        const authUser = user as AuthUser | { id?: string } | null;
-        const authUserId = getUserId(authUser);
-        if (!authUserId) return [];
-
-        return events.filter((event: CalendarCompleteEventData) =>
-            getUserId(event.user) === authUserId
-        );
+        const authUser = user as AuthUser | null;
+        if (!authUser?.id) return [];
+        return events.filter((e: CalendarCompleteEventData) => e.user?._id === authUser.id);
     }, [events, user]);
 
     const filteredEvents = useMemo(() => {
@@ -65,39 +51,46 @@ export const MyEventsPage = () => {
         return result;
     }, [myEvents, selectedCategory, titleFilter]);
 
-    // ✅ AQUÍ — después del useMemo, no dentro ni antes
-    console.log('filteredEvents con padre:', filteredEvents.map((e: CalendarCompleteEventData) => ({
-        id: e.id, title: e.title, padre: e.padre
-    })));
+    const eventNameMap = useMemo(() => {
+        const map = new Map<string, string>();
+        events.forEach((e: { id: string; title: string; }) => { if (e.id) map.set(e.id, e.title); });
+        return map;
+    }, [events]);
 
+    // Construye árbol Composite: padres con sus hijos
     const eventTree = useMemo<ICalendarNode[]>(() => {
         const map = new Map<string, ICalendarNode>();
+
         for (const ev of filteredEvents) {
             if (!ev.padre) map.set(ev.id!, new CompositeNode(ev));
             else           map.set(ev.id!, new LeafNode(ev));
         }
+
         for (const ev of filteredEvents) {
             if (ev.padre) {
                 const parent = map.get(ev.padre);
-                const child = map.get(ev.id!);
-                if (parent instanceof CompositeNode && child) {
-                    parent.add(child);
-                }
+                const child  = map.get(ev.id!);
+                if (parent instanceof CompositeNode && child) parent.add(child);
             }
         }
+
         return [...map.values()].filter(n => !n.getData().padre);
     }, [filteredEvents]);
 
-    const getUrgencyLabel = (bgColor?: string) => {
+    // Si es evento padre (sin fechas) → siempre "Evento mayor"
+    const getUrgencyLabel = (bgColor?: string, isParent = false) => {
+        if (isParent) return { label: 'Evento mayor', badge: 'secondary' };
+
         switch (bgColor) {
-            case '#FF0000': return { label: '🔴 Urgente', badge: 'danger' };
-            case '#FFA500': return { label: '🟡 Medio', badge: 'warning' };
-            case '#00CC00': return { label: '🟢 Tranquilo', badge: 'success' };
-            default: return { label: '⚫ Pasado', badge: 'dark' };
+            case '#FF0000': return { label: 'Urgente',   badge: 'danger' };
+            case '#FFA500': return { label: 'Medio',     badge: 'warning' };
+            case '#00CC00': return { label: 'Tranquilo', badge: 'success' };
+            case '#6c757d': return { label: 'Mayor',     badge: 'secondary' };
+            default:        return { label: 'Pasado',    badge: 'dark' };
         }
     };
 
-    // Botón de eliminar reutilizable
+    // Botón eliminar reutilizable
     const DeleteBtn = ({ id }: { id: string }) => (
         <button
             className="btn btn-sm btn-outline-danger"
@@ -175,7 +168,9 @@ export const MyEventsPage = () => {
                         </div>
                     ) : (
                         eventTree.map(node => {
-                            const urgency = getUrgencyLabel(node.getData().bgColor);
+                            // Es padre si no tiene fechas
+                            const isParentNode = !node.getData().start && !node.getData().end;
+                            const urgency      = getUrgencyLabel(node.getData().bgColor, isParentNode);
 
                             // ── CASO 1: Evento padre CON sub-eventos ──────────────────────
                             if (node.isComposite() && node.getChildren().length > 0) {
@@ -191,13 +186,17 @@ export const MyEventsPage = () => {
                                                 </span>
                                             </span>
                                             <div className="d-flex align-items-center gap-2">
-                                                <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
+                                                <span className={`badge bg-${urgency.badge}`}>
+                                                    {urgency.label}
+                                                </span>
                                                 <DeleteBtn id={node.getData().id!} />
                                             </div>
                                         </div>
 
+                                        {/* Sub-eventos */}
                                         {node.getChildren().map(child => {
-                                            const childUrgency = getUrgencyLabel(child.getData().bgColor);
+                                            const childIsParent = !child.getData().start && !child.getData().end;
+                                            const childUrgency  = getUrgencyLabel(child.getData().bgColor, childIsParent);
                                             return (
                                                 <div
                                                     key={child.getData().id}
@@ -222,10 +221,7 @@ export const MyEventsPage = () => {
                             }
 
                             // ── CASO 2: Evento mayor SIN sub-eventos aún ─────────────────
-                            const isEmptyParent =
-                                !node.getData().padre &&
-                                !node.getData().start &&
-                                !node.getData().end;
+                            const isEmptyParent = !node.getData().padre && isParentNode;
 
                             if (isEmptyParent) {
                                 return (
@@ -255,7 +251,9 @@ export const MyEventsPage = () => {
                             return (
                                 <div key={node.getData().id} className="col-md-6 col-lg-4 mb-3">
                                     <div className="mb-1 d-flex align-items-center gap-2">
-                                        <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
+                                        <span className={`badge bg-${urgency.badge}`}>
+                                            {urgency.label}
+                                        </span>
                                         <DeleteBtn id={node.getData().id!} />
                                     </div>
                                     <CalendarEventCard
