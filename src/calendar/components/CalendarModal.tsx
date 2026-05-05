@@ -54,7 +54,7 @@ export const CalendarModal = () => {
         title: '',
         notes: '',
         start: new Date(),
-        end:   addHours(new Date(), 2),
+        end: addHours(new Date(), 2),
         category: 'general',
     });
 
@@ -72,6 +72,7 @@ export const CalendarModal = () => {
         return events.filter((e: CalendarCompleteEventData) =>
             e.user?.id === (user as { id?: string })?.id &&
             !e.padre &&
+            (!e.start && !e.end || events.some((child: CalendarCompleteEventData) => child.padre === e.id)) &&
             e.id !== activeEvent?.id
         );
     }, [events, user, activeEvent?.id]);
@@ -87,9 +88,13 @@ export const CalendarModal = () => {
                 setFormValues({ ...activeEvent });
                 setCategory((activeEvent.category as CategoryKey) ?? 'general');
                 setSelectedPadre(activeEvent.padre ?? '');
-                const hasNoDate   = !activeEvent.start && !activeEvent.end;
-                const hasChildren = events.some((e: { padre: any; }) => e.padre === activeEvent.id);
-                setActAsParent(hasNoDate || hasChildren);
+                const hasNoDate = !activeEvent.start && !activeEvent.end;
+                const hasChildren = events.some((e: CalendarCompleteEventData) => e.padre === activeEvent.id);
+                const isParentEvent = hasNoDate || hasChildren;
+                setActAsParent(isParentEvent);
+                if (isParentEvent) {
+                    setCategory('general');
+                }
             }, 0);
             return () => clearTimeout(timeOut);
         }
@@ -105,6 +110,13 @@ export const CalendarModal = () => {
 
     const onDateChange = (event: Date | null, changing: StartOrEnd) => {
         setFormValues({ ...formValues, [changing]: event });
+    };
+
+    const onActAsParentChange = (checked: boolean) => {
+        setActAsParent(checked);
+        if (checked) {
+            setCategory('general');
+        }
     };
 
     const onCloseModal = () => {
@@ -127,7 +139,7 @@ export const CalendarModal = () => {
 
         if (showDatePickers) {
             const start = formValues.start as Date | null;
-            const end   = formValues.end   as Date | null;
+            const end = formValues.end as Date | null;
 
             if (!start || !end) {
                 Swal.fire(
@@ -151,7 +163,7 @@ export const CalendarModal = () => {
             .setTitle(formValues.title)
             .setNotes(formValues.notes)
             .setStart(showDatePickers ? formValues.start : null)
-            .setEnd(showDatePickers   ? formValues.end   : null)
+            .setEnd(showDatePickers ? formValues.end : null)
             .setBgColor(actAsParent ? '#6c757d' : formValues.bgColor)
             .setUser(formValues.user)
             .setId(formValues.id)
@@ -191,7 +203,7 @@ export const CalendarModal = () => {
                             type="checkbox"
                             id="actAsParentSwitch"
                             checked={actAsParent}
-                            onChange={(e) => setActAsParent(e.target.checked)}
+                            onChange={(e) => onActAsParentChange(e.target.checked)}
                         />
                         <label className="form-check-label" htmlFor="actAsParentSwitch">
                             <strong>Este es un evento mayor</strong>
@@ -280,6 +292,7 @@ export const CalendarModal = () => {
                         name="category"
                         value={category}
                         onChange={onCategoryChange}
+                        disabled={actAsParent}
                     >
                         {(Object.keys(categories) as CategoryKey[]).map((key) => (
                             <option key={key} value={key}>
@@ -287,7 +300,9 @@ export const CalendarModal = () => {
                             </option>
                         ))}
                     </select>
-                    <small className="form-text text-muted">Clasifica el evento</small>
+                    <small className="form-text text-muted">
+                        {actAsParent ? 'Los eventos mayores usan la categoría General por defecto' : 'Clasifica el evento'}
+                    </small>
                 </div>
 
                 {/* COMPOSITE — selector de padre AL FINAL, se oculta si es evento mayor */}

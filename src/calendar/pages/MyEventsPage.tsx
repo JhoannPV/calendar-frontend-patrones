@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { categories, type CalendarCompleteEventData, type CategoryKey } from '..';
+import { categories, type CalendarCompleteEventData, type CategoryKey, type User } from '..';
 import { CalendarEventCard, DarkThemeImplementor, LightThemeImplementor } from '../bridge';
 import type { IThemeImplementor } from '../bridge';
 import { useAuthStore, useCalendarStore } from '../../hooks';
@@ -10,21 +10,21 @@ import { CompositeNode } from '../composite/composite-node';
 import { LeafNode } from '../composite/leaf-node';
 import type { ICalendarNode } from '../composite/calendar-node.interface';
 
-interface AuthUser { id: string; name: string; }
 
 export const MyEventsPage = () => {
-    const { user }                                               = useAuthStore();
+    const { user } = useAuthStore();
     const { events, startLoadingEvents, startDeletingEventById } = useCalendarStore();
-    const navigate                                               = useNavigate();
+    const navigate = useNavigate();
 
     const [selectedCategory, setSelectedCategory] = useState<CategoryKey | 'all'>('all');
-    const [titleFilter, setTitleFilter]           = useState('');
+    const [titleFilter, setTitleFilter] = useState('');
+    const [parentFilters, setParentFilters] = useState<Record<string, { title: string; category: CategoryKey | 'all' }>>({});
     const [theme, setTheme] = useState<IThemeImplementor>(new LightThemeImplementor());
 
     // Siempre recargar al entrar a la página
     useEffect(() => {
         startLoadingEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleTheme = () =>
@@ -34,9 +34,20 @@ export const MyEventsPage = () => {
                 : new LightThemeImplementor()
         );
 
+    const updateParentFilter = (parentId: string, field: 'title' | 'category', value: string) => {
+        setParentFilters(prev => ({
+            ...prev,
+            [parentId]: {
+                title: prev[parentId]?.title ?? '',
+                category: prev[parentId]?.category ?? 'all',
+                [field]: field === 'category' ? (value as CategoryKey | 'all') : value,
+            },
+        }));
+    };
+
     // Todos los eventos del usuario actual
     const myEvents = useMemo(() => {
-        const authUser = user as AuthUser | null;
+        const authUser = user as User | null;
         if (!authUser?.id) return [];
         return events.filter((e: CalendarCompleteEventData) => e.user?.id === authUser.id);
     }, [events, user]);
@@ -56,14 +67,14 @@ export const MyEventsPage = () => {
         for (const ev of myEvents) {
             const isParent = !ev.padre; // padre = null/undefined → es raíz
             if (isParent) map.set(ev.id!, new CompositeNode(ev));
-            else          map.set(ev.id!, new LeafNode(ev));
+            else map.set(ev.id!, new LeafNode(ev));
         }
 
         // 2. Vincular hijos a sus padres
         for (const ev of myEvents) {
             if (ev.padre) {
                 const parentNode = map.get(ev.padre);
-                const childNode  = map.get(ev.id!);
+                const childNode = map.get(ev.id!);
                 if (parentNode instanceof CompositeNode && childNode) {
                     parentNode.add(childNode);
                 }
@@ -95,11 +106,11 @@ export const MyEventsPage = () => {
     const getUrgencyLabel = (bgColor?: string, isParent = false) => {
         if (isParent) return { label: 'Evento mayor', badge: 'secondary' };
         switch (bgColor) {
-            case '#FF0000': return { label: 'Urgente',   badge: 'danger' };
-            case '#FFA500': return { label: 'Medio',     badge: 'warning' };
+            case '#FF0000': return { label: 'Urgente', badge: 'danger' };
+            case '#FFA500': return { label: 'Medio', badge: 'warning' };
             case '#00CC00': return { label: 'Tranquilo', badge: 'success' };
-            case '#6c757d': return { label: 'Mayor',     badge: 'secondary' };
-            default:        return { label: 'Pasado',    badge: 'dark' };
+            case '#6c757d': return { label: 'Mayor', badge: 'secondary' };
+            default: return { label: 'Pasado', badge: 'dark' };
         }
     };
 
@@ -180,25 +191,64 @@ export const MyEventsPage = () => {
                     ) : eventTree.map(node => {
                         const isParentNode = !node.getData().start && !node.getData().end;
                         const urgency = getUrgencyLabel(node.getData().bgColor, isParentNode);
+                        const nodeId = node.getData().id!;
+
+                        const parentFilter = parentFilters[nodeId] ?? { title: '', category: 'all' as const };
 
                         // CASO 1: Evento padre CON sub-eventos
                         if (node.isComposite() && node.getChildren().length > 0) {
+                            const filteredChildren = node.getChildren().filter(child => {
+                                const childData = child.getData();
+                                const matchCategory = parentFilter.category === 'all' || childData.category === parentFilter.category;
+                                const matchTitle = !parentFilter.title.trim() || childData.title.toLowerCase().includes(parentFilter.title.toLowerCase().trim());
+                                return matchCategory && matchTitle;
+                            });
+
                             return (
-                                <div key={node.getData().id} className="col-12 mb-4">
+                                <div key={nodeId} className="col-12 mb-4">
                                     <div className="alert alert-secondary fw-bold mb-2 d-flex justify-content-between align-items-center">
                                         <span>
                                             <i className="fas fa-layer-group me-2"></i>
                                             {node.getData().title}
                                             <span className="ms-2 text-muted fw-normal" style={{ fontSize: '0.85rem' }}>
-                                                {node.getChildren().length} sub-evento{node.getChildren().length !== 1 ? 's' : ''}
+                                                {filteredChildren.length} sub-evento{filteredChildren.length !== 1 ? 's' : ''}
                                             </span>
                                         </span>
                                         <div className="d-flex align-items-center gap-2">
                                             <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
-                                            <DeleteBtn id={node.getData().id!} />
+                                            <DeleteBtn id={nodeId} />
                                         </div>
                                     </div>
-                                    {node.getChildren().map(child => {
+                                    <div className="ms-4 mb-3 rounded-3 border border-light-subtle bg-body-tertiary p-2">
+                                        <div className="row g-2 align-items-center">
+                                            <div className="col-12 col-md-7">
+                                                <input
+                                                    type="text"
+                                                    className="form-control form-control-sm"
+                                                    placeholder="Buscar subevento por nombre..."
+                                                    value={parentFilter.title}
+                                                    onChange={e => updateParentFilter(nodeId, 'title', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="col-12 col-md-5">
+                                                <select
+                                                    className="form-select form-select-sm"
+                                                    value={parentFilter.category}
+                                                    onChange={e => updateParentFilter(nodeId, 'category', e.target.value)}
+                                                >
+                                                    <option value="all">Todas las categorías</option>
+                                                    {(Object.keys(categories) as CategoryKey[]).map(key => (
+                                                        <option key={key} value={key}>{categories[key]}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {filteredChildren.length === 0 ? (
+                                        <div className="ms-4 border-start border-secondary ps-3 mt-2 text-muted small">
+                                            No hay subeventos que coincidan con ese filtro.
+                                        </div>
+                                    ) : filteredChildren.map(child => {
                                         const cu = getUrgencyLabel(child.getData().bgColor, false);
                                         return (
                                             <div key={child.getData().id} className="ms-4 border-start border-secondary ps-3 mt-2">
@@ -221,7 +271,7 @@ export const MyEventsPage = () => {
                         // CASO 2: Evento mayor SIN sub-eventos aún
                         if (isParentNode) {
                             return (
-                                <div key={node.getData().id} className="col-12 mb-3">
+                                <div key={nodeId} className="col-12 mb-3">
                                     <div className="alert alert-secondary fw-bold d-flex justify-content-between align-items-center">
                                         <span>
                                             <i className="fas fa-layer-group me-2"></i>

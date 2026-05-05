@@ -1,5 +1,6 @@
 import { addHours } from "date-fns";
 import { useAuthStore, useCalendarStore, useUiStore } from "../../hooks";
+import type { User } from "..";
 
 export const FabAddNew = () => {
 
@@ -7,13 +8,13 @@ export const FabAddNew = () => {
     const { user } = useAuthStore();
     const { setActiveEvent } = useCalendarStore();
 
-    const currentUser = (
+    const currentUser: User | undefined = (
         user &&
         typeof user === 'object' &&
         '_id' in user &&
         'name' in user
     )
-        ? { _id: String(user._id), name: String(user.name) }
+        ? { id: String(user.id), name: String(user.name) }
         : undefined;
 
     const handleClickNew = () => {

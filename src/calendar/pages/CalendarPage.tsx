@@ -17,10 +17,10 @@ import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { FabCancelSelect } from '../components/FabCancelSelect';
 
 export const CalendarPage = () => {
-    const { user }                                       = useAuthStore();
-    const currentUser                                    = user as User;
+    const { user } = useAuthStore();
+    const currentUser = user as User;
     const { events, setActiveEvent, startLoadingEvents } = useCalendarStore();
-    const { openDateModal }                              = useUiStore();
+    const { openDateModal } = useUiStore();
 
     const [lastView, setLastView] = useState<View>(
         localStorage.getItem('lastView') as View ?? 'week'
@@ -40,7 +40,7 @@ export const CalendarPage = () => {
     //  ✅ Eventos independientes (sin padre, con fechas, sin hijos)
     //  ❌ Eventos padre → excluidos del calendario
     const calendarEvents = useMemo(() => {
-        return events.filter((ev: { id: string; start: any; end: any; }) => {
+        return events.filter((ev: CalendarCompleteEventData) => {
             if (parentIds.has(ev.id!)) return false;  // es padre de alguien → fuera
             if (!ev.start || !ev.end) return false;    // sin fechas → fuera
             return true;
@@ -49,13 +49,13 @@ export const CalendarPage = () => {
 
     const eventStyleGetter = (event: CalendarCompleteEventData) => {
         const isMyEvent = currentUser?.id === event.user?.id;
-        const color     = event.bgColor || '#347CF7';
+        const color = event.bgColor || '#347CF7';
         return {
             style: {
                 backgroundColor: isMyEvent ? color : '#465660',
-                borderRadius:    '0px',
-                opacity:          0.8,
-                color:           'white',
+                borderRadius: '0px',
+                opacity: 0.8,
+                color: 'white',
             },
         };
     };
