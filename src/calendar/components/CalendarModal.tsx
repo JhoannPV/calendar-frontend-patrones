@@ -69,7 +69,7 @@ export const CalendarModal = () => {
     // y que no sea el mismo evento que se está editando
     const parentOptions = useMemo(() => {
         return events.filter((e: CalendarCompleteEventData) =>
-            e.user?.id === (user as { id?: string })?.id &&
+            e.user?._id === (user as { id?: string })?.id &&
             !e.padre &&
             e.id !== activeEvent?.id
         );
