@@ -13,7 +13,13 @@ import { CompositeNode } from '../composite/composite-node';
 import { LeafNode } from '../composite/leaf-node';
 import type { ICalendarNode } from '../composite/calendar-node.interface';
 
-interface AuthUser { id: string; name: string; }
+interface AuthUser {
+    _id: string;
+    name: string;
+}
+
+const getUserId = (user: { _id?: string; id?: string } | null | undefined) => user?._id ?? user?.id ?? null;
+
 
 export const MyEventsPage = () => {
     const { user }                                              = useAuthStore();
@@ -25,8 +31,10 @@ export const MyEventsPage = () => {
     const [theme, setTheme] = useState<IThemeImplementor>(new LightThemeImplementor());
 
     useEffect(() => {
-        if (events.length === 0) startLoadingEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (events.length === 0) {
+            startLoadingEvents();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleTheme = () =>
@@ -37,9 +45,13 @@ export const MyEventsPage = () => {
         );
 
     const myEvents = useMemo(() => {
-        const authUser = user as AuthUser | null;
-        if (!authUser?.id) return [];
-        return events.filter((e: CalendarCompleteEventData) => e.user?.id === authUser.id);
+        const authUser = user as AuthUser | { id?: string } | null;
+        const authUserId = getUserId(authUser);
+        if (!authUserId) return [];
+
+        return events.filter((event: CalendarCompleteEventData) =>
+            getUserId(event.user) === authUserId
+        );
     }, [events, user]);
 
     const filteredEvents = useMemo(() => {
@@ -53,11 +65,10 @@ export const MyEventsPage = () => {
         return result;
     }, [myEvents, selectedCategory, titleFilter]);
 
-    const eventNameMap = useMemo(() => {
-        const map = new Map<string, string>();
-        events.forEach((e: { id: string; title: string; }) => { if (e.id) map.set(e.id, e.title); });
-        return map;
-    }, [events]);
+    // ✅ AQUÍ — después del useMemo, no dentro ni antes
+    console.log('filteredEvents con padre:', filteredEvents.map((e: CalendarCompleteEventData) => ({
+        id: e.id, title: e.title, padre: e.padre
+    })));
 
     const eventTree = useMemo<ICalendarNode[]>(() => {
         const map = new Map<string, ICalendarNode>();
@@ -68,8 +79,10 @@ export const MyEventsPage = () => {
         for (const ev of filteredEvents) {
             if (ev.padre) {
                 const parent = map.get(ev.padre);
-                const child  = map.get(ev.id!);
-                if (parent instanceof CompositeNode && child) parent.add(child);
+                const child = map.get(ev.id!);
+                if (parent instanceof CompositeNode && child) {
+                    parent.add(child);
+                }
             }
         }
         return [...map.values()].filter(n => !n.getData().padre);
@@ -77,11 +90,10 @@ export const MyEventsPage = () => {
 
     const getUrgencyLabel = (bgColor?: string) => {
         switch (bgColor) {
-            case '#FF0000': return { label: 'Urgente',   badge: 'danger' };
-            case '#FFA500': return { label: 'Medio',     badge: 'warning' };
-            case '#00CC00': return { label: 'Tranquilo', badge: 'success' };
-            case '#6c757d': return { label: 'Mayor',     badge: 'secondary' };
-            default:        return { label: 'Pasado',    badge: 'dark' };
+            case '#FF0000': return { label: '🔴 Urgente', badge: 'danger' };
+            case '#FFA500': return { label: '🟡 Medio', badge: 'warning' };
+            case '#00CC00': return { label: '🟢 Tranquilo', badge: 'success' };
+            default: return { label: '⚫ Pasado', badge: 'dark' };
         }
     };
 

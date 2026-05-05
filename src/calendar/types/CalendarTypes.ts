@@ -9,29 +9,40 @@ export const categories = {
 export type CategoryKey = keyof typeof categories;
 
 export interface User {
-    id:   string;
+    _id: string;
     name: string;
 }
 
 // Datos básicos que el Builder maneja
 export interface CalendarEventData {
-    id?:      string;
-    title:    string;
-    notes:    string;
-    // Nullable: los eventos padre NO tienen fechas
-    start:    Date | string | null;
-    end:      Date | string | null;
+    id?: string;
+    title: string;
+    notes: string;
+    start: Date | string;
+    end: Date | string;
     bgColor?: string;
-    user?:    { _id?: string; id?: string; name: string };
-    padre?:   string | null;
+    user?: User;
+    padre?: string | null;  // COMPOSITE
 }
 
-// Flyweight añade category
-export interface CalendarTypeFlyweight {
-    readonly category: CategoryKey;
+export interface CalendarCompleteEventData {
+    id?: string;
+    title: string;
+    notes: string;
+    start: Date | string;
+    end: Date | string;
+    bgColor?: string;
+    user?: User;
+    category: CategoryKey;
+    padre?: string | null;  // COMPOSITE
 }
 
-// Dato completo que viaja al store y a la API
-export interface CalendarCompleteEventData extends CalendarEventData {
-    category: CategoryKey | string;
-}
+export const categories = {
+    general: 'General',
+    work: 'Trabajo',
+    sports: 'Deportes',
+    family: 'Familia',
+    travel: 'Viajes',
+} as const;
+
+export type CategoryKey = keyof typeof categories;
