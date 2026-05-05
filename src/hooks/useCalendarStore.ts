@@ -45,6 +45,10 @@ export const useCalendarStore = () => {
                     end:   data.event.end   ? new Date(data.event.end)   : null,
                 })));
             }
+
+            // 🔥 Recargar para reflejar el árbol completo actualizado
+            await startLoadingEvents();
+
         } catch (error) {
             const { response } = error as ErrorResponse;
             Swal.fire('Error al guardar', response.data?.error, 'error');

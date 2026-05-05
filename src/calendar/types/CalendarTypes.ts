@@ -1,18 +1,22 @@
 export interface User {
-    _id: string;
+    id: string;
     name: string;
 }
 
-// Datos básicos que el Builder maneja
+// src/calendar/types/CalendarTypes.ts
 export interface CalendarEventData {
-    id?: string;
-    title: string;
-    notes: string;
-    start: Date | string;
-    end: Date | string;
+    id?:      string;
+    title:    string;
+    notes:    string;
+    start:    Date | string | null;
+    end:      Date | string | null;
     bgColor?: string;
-    user?: User;
-    padre?: string | null;  // COMPOSITE
+    category: string;
+    padre?:   string | null;
+    user?: {
+        id:    string;
+        name:  string;
+    };
 }
 
 export interface CalendarCompleteEventData {
