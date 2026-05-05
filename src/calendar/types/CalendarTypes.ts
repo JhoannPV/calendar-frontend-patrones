@@ -1,8 +1,19 @@
+export const categories = {
+    general: 'General',
+    work:    'Trabajo',
+    sports:  'Deportes',
+    family:  'Familia',
+    travel:  'Viajes',
+} as const;
+
+export type CategoryKey = keyof typeof categories;
+
 export interface User {
     _id: string;
     name: string;
 }
 
+// Datos básicos que el Builder maneja
 export interface CalendarEventData {
     id?: string;
     title: string;

@@ -1,7 +1,10 @@
 // src/calendar/components/CalendarModal.tsx
 
 import { addHours, differenceInSeconds } from 'date-fns';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type SyntheticEvent } from 'react';
+import {
+    useEffect, useMemo, useRef, useState,
+    type ChangeEvent, type SyntheticEvent,
+} from 'react';
 
 import Modal from 'react-modal';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -51,13 +54,16 @@ export const CalendarModal = () => {
         title: '',
         notes: '',
         start: new Date(),
-        end: addHours(new Date(), 2),
+        end:   addHours(new Date(), 2),
     });
 
     const [category, setCategory] = useState<CategoryKey>('general');
 
-    // COMPOSITE — estado del padre seleccionado
+    // COMPOSITE — padre seleccionado
     const [selectedPadre, setSelectedPadre] = useState<string>('');
+
+    // Toggle: ¿este evento actúa como padre (evento mayor sin fechas)?
+    const [actAsParent, setActAsParent] = useState(false);
 
     // Eventos disponibles como padre: del usuario actual, sin padre propio,
     // y que no sea el mismo evento que se está editando
@@ -78,13 +84,15 @@ export const CalendarModal = () => {
         if (activeEvent !== null) {
             const timeOut = setTimeout(() => {
                 setFormValues({ ...activeEvent });
-                setCategory(activeEvent.category ?? 'general');
-                // COMPOSITE — cargar padre si el evento ya tiene uno
+                setCategory((activeEvent.category as CategoryKey) ?? 'general');
                 setSelectedPadre(activeEvent.padre ?? '');
+                const hasNoDate   = !activeEvent.start && !activeEvent.end;
+                const hasChildren = events.some((e: { padre: any; }) => e.padre === activeEvent.id);
+                setActAsParent(hasNoDate || hasChildren);
             }, 0);
             return () => clearTimeout(timeOut);
         }
-    }, [activeEvent]);
+    }, [activeEvent, events]);
 
     const onInputChange = ({ target }: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormValues({ ...formValues, [target.name]: target.value });
@@ -101,33 +109,52 @@ export const CalendarModal = () => {
     const onCloseModal = () => {
         closeDateModal();
         setActiveEvent(null);
-        setSelectedPadre(''); // COMPOSITE — limpiar al cerrar
+        setSelectedPadre('');
+        setActAsParent(false);
     };
+
+    // Mostrar fechas cuando:
+    // - tiene padre seleccionado (subevento) → siempre necesita fechas
+    // - no es evento mayor → evento independiente con fechas
+    const showDatePickers = selectedPadre !== '' || !actAsParent;
 
     const onSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         setFormSubmitted(true);
 
-        const different = differenceInSeconds(formValues.end as Date, formValues.start as Date);
-
-        if (isNaN(different) || different <= 0) {
-            Swal.fire('Fechas incorrectas', 'Revisar las fechas ingresadas', 'error');
-            return;
-        }
-
         if (formValues.title.length <= 0) return;
+
+        if (showDatePickers) {
+            const start = formValues.start as Date | null;
+            const end   = formValues.end   as Date | null;
+
+            if (!start || !end) {
+                Swal.fire(
+                    'Fechas requeridas',
+                    'Los sub-eventos e independientes necesitan fecha de inicio y fin',
+                    'error'
+                );
+                return;
+            }
+
+            const diff = differenceInSeconds(end, start);
+            if (isNaN(diff) || diff <= 0) {
+                Swal.fire('Fechas incorrectas', 'La fecha de fin debe ser posterior al inicio', 'error');
+                return;
+            }
+        }
 
         const calendarType = calendarTypeFactoryRef.current.getCalendarType(category);
 
         const builderEvent = new DirectorEventBuilder().createEventComplete()
             .setTitle(formValues.title)
             .setNotes(formValues.notes)
-            .setStart(formValues.start)
-            .setEnd(formValues.end)
+            .setStart(showDatePickers ? formValues.start : null)
+            .setEnd(showDatePickers   ? formValues.end   : null)
             .setBgColor(formValues.bgColor)
             .setUser(formValues.user)
             .setId(formValues.id)
-            .setPadre(selectedPadre || null) // COMPOSITE
+            .setPadre(selectedPadre || null)
             .build();
 
         const calendarEvent: CalendarCompleteEventData =
@@ -137,7 +164,8 @@ export const CalendarModal = () => {
         closeDateModal();
         setActiveEvent(null);
         setFormSubmitted(false);
-        setSelectedPadre(''); // COMPOSITE — limpiar al guardar
+        setSelectedPadre('');
+        setActAsParent(false);
     };
 
     return (
@@ -145,49 +173,81 @@ export const CalendarModal = () => {
             isOpen={isDateModalOpen}
             onRequestClose={onCloseModal}
             style={customStyles}
-            contentLabel="Example Modal"
+            contentLabel="Evento"
             className="modal"
             overlayClassName="modal-fondo"
             closeTimeoutMS={200}
         >
-            <h1> Nuevo evento </h1>
+            <h1>{activeEvent?.id ? 'Editar evento' : 'Nuevo evento'}</h1>
             <hr />
             <form className="container" onSubmit={onSubmit}>
 
-                <div className="form-group mb-2">
-                    <label>Fecha y hora inicio</label>
-                    <br />
-                    <DatePicker
-                        selected={formValues.start as Date}
-                        onChange={(event: Date | null) => onDateChange(event, 'start')}
-                        className="form-control"
-                        dateFormat="Pp"
-                        showTimeSelect
-                        locale="es"
-                        timeCaption="Hora"
-                        minDate={new Date(new Date().setHours(0, 0, 0, 0))}   // no permite fechas pasadas
-                    />
-                </div>
+                {/* Toggle "Es evento mayor" — se oculta si ya eligió un padre */}
+                {selectedPadre === '' && (
+                    <div className="form-check form-switch mb-3">
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="actAsParentSwitch"
+                            checked={actAsParent}
+                            onChange={(e) => setActAsParent(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="actAsParentSwitch">
+                            <strong>Este es un evento mayor</strong>
+                            <small className="d-block text-muted">
+                                Los eventos mayores no tienen fecha — agrupan sub-eventos
+                            </small>
+                        </label>
+                    </div>
+                )}
+
+                {/* Aviso cuando es evento mayor */}
+                {!showDatePickers && (
+                    <div className="alert alert-info py-2 mb-3">
+                        <i className="fas fa-layer-group me-2"></i>
+                        <strong>Evento mayor</strong> — no lleva fecha de inicio ni fin.
+                        Los sub-eventos que lo integren sí tendrán sus propias fechas.
+                    </div>
+                )}
+
+                {/* Fechas — solo si NO es evento mayor */}
+                {showDatePickers && (
+                    <>
+                        <div className="form-group mb-2">
+                            <label>Fecha y hora inicio</label>
+                            <br />
+                            <DatePicker
+                                selected={formValues.start as Date}
+                                onChange={(event: Date | null) => onDateChange(event, 'start')}
+                                className="form-control"
+                                dateFormat="Pp"
+                                showTimeSelect
+                                locale="es"
+                                timeCaption="Hora"
+                                minDate={new Date(new Date().setHours(0, 0, 0, 0))}
+                            />
+                        </div>
+
+                        <div className="form-group mb-2">
+                            <label>Fecha y hora fin</label>
+                            <br />
+                            <DatePicker
+                                minDate={formValues.start as Date}
+                                selected={formValues.end as Date}
+                                onChange={(event: Date | null) => onDateChange(event, 'end')}
+                                className="form-control"
+                                dateFormat="Pp"
+                                showTimeSelect
+                                locale="es"
+                                timeCaption="Hora"
+                            />
+                        </div>
+                        <hr />
+                    </>
+                )}
 
                 <div className="form-group mb-2">
-                    <label>Fecha y hora fin</label>
-                    <br />
-                    <DatePicker
-                        minDate={formValues.start as Date}
-                        selected={formValues.end as Date}
-                        onChange={(event: Date | null) => onDateChange(event, 'end')}
-                        className="form-control"
-                        dateFormat="Pp"
-                        showTimeSelect
-                        locale="es"
-                        timeCaption="Hora"
-                    />
-                </div>
-
-                <hr />
-
-                <div className="form-group mb-2">
-                    <label>Titulo y notas</label>
+                    <label>Título y notas</label>
                     <input
                         type="text"
                         className={`form-control ${titleClass}`}
@@ -204,7 +264,7 @@ export const CalendarModal = () => {
                     <textarea
                         className="form-control"
                         placeholder="Notas"
-                        rows={5}
+                        rows={3}
                         name="notes"
                         value={formValues.notes}
                         onChange={onInputChange}
@@ -212,7 +272,7 @@ export const CalendarModal = () => {
                     <small className="form-text text-muted">Información adicional</small>
                 </div>
 
-                <div className="form-group mb-2">
+                <div className="form-group mb-3">
                     <label>Categoría</label>
                     <select
                         className="form-select"
@@ -229,27 +289,29 @@ export const CalendarModal = () => {
                     <small className="form-text text-muted">Clasifica el evento</small>
                 </div>
 
-                {/* COMPOSITE — selector de evento padre (opcional) */}
-                <div className="form-group mb-3">
-                    <label>Agrupar bajo un evento mayor</label>
-                    <select
-                        className="form-select"
-                        value={selectedPadre}
-                        onChange={(e) => setSelectedPadre(e.target.value)}
-                    >
-                        <option value="">— Sin grupo (evento independiente) —</option>
-                        {parentOptions.map((ev: CalendarCompleteEventData) => (
-                            <option key={ev.id} value={ev.id}>
-                                {ev.title}
-                            </option>
-                        ))}
-                    </select>
-                    <small className="form-text text-muted">
-                        Opcional — si eliges un evento mayor, este será un sub-evento
-                    </small>
-                </div>
+                {/* COMPOSITE — selector de padre AL FINAL, se oculta si es evento mayor */}
+                {!actAsParent && (
+                    <div className="form-group mb-3">
+                        <label><strong>Agrupar bajo un evento mayor</strong></label>
+                        <select
+                            className="form-select"
+                            value={selectedPadre}
+                            onChange={(e) => setSelectedPadre(e.target.value)}
+                        >
+                            <option value="">— Sin grupo —</option>
+                            {parentOptions.map((ev: CalendarCompleteEventData) => (
+                                <option key={ev.id} value={ev.id}>
+                                    {ev.title}
+                                </option>
+                            ))}
+                        </select>
+                        <small className="form-text text-muted">
+                            Si eliges un evento mayor, este se convierte en sub-evento
+                        </small>
+                    </div>
+                )}
 
-                <button type="submit" className="btn btn-outline-primary btn-block">
+                <button type="submit" className="btn btn-outline-primary btn-block w-100">
                     <i className="far fa-save"></i>
                     <span> Guardar</span>
                 </button>

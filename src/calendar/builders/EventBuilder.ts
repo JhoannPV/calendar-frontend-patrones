@@ -1,12 +1,11 @@
-import { addHours } from 'date-fns';
 import type { CalendarEventData } from '..';
 
 export class EventBuilder {
     private event: Partial<CalendarEventData> = {
-        title:  '',
-        notes:  '',
-        start:  new Date(),
-        end:    addHours(new Date(), 2),
+        title: '',
+        notes: '',
+        start: null,
+        end:   null,
     };
 
     public setTitle(title: string): this {
@@ -14,12 +13,12 @@ export class EventBuilder {
         return this;
     }
 
-    public setStart(start: Date | string): this {
+    public setStart(start: Date | string | null): this {
         this.event.start = start;
         return this;
     }
 
-    public setEnd(end: Date | string): this {
+    public setEnd(end: Date | string | null): this {
         this.event.end = end;
         return this;
     }
@@ -44,7 +43,7 @@ export class EventBuilder {
         return this;
     }
 
-    public setPadre(padre?: string | null): this {  // NUEVO
+    public setPadre(padre?: string | null): this {
         this.event.padre = padre ?? undefined;
         return this;
     }
