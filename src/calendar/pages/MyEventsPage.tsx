@@ -14,9 +14,11 @@ import { LeafNode } from '../composite/leaf-node';
 import type { ICalendarNode } from '../composite/calendar-node.interface';
 
 interface AuthUser {
-    id: string;
+    _id: string;
     name: string;
 }
+
+const getUserId = (user: { _id?: string; id?: string } | null | undefined) => user?._id ?? user?.id ?? null;
 
 
 export const MyEventsPage = () => {
@@ -37,7 +39,7 @@ export const MyEventsPage = () => {
         if (events.length === 0) {
             startLoadingEvents();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleTheme = () => {
@@ -50,11 +52,12 @@ export const MyEventsPage = () => {
 
     // FIX: cast correcto del usuario autenticado
     const myEvents = useMemo(() => {
-        const authUser = user as AuthUser | null;
-        if (!authUser?.id) return [];
+        const authUser = user as AuthUser | { id?: string } | null;
+        const authUserId = getUserId(authUser);
+        if (!authUserId) return [];
 
         return events.filter((event: CalendarCompleteEventData) =>
-            event.user?.id === authUser.id
+            getUserId(event.user) === authUserId
         );
     }, [events, user]);
 
@@ -76,7 +79,7 @@ export const MyEventsPage = () => {
     }, [myEvents, selectedCategory, titleFilter]);
 
     // ✅ AQUÍ — después del useMemo, no dentro ni antes
-    console.log('filteredEvents con padre:', filteredEvents.map((e: { id: any; title: any; padre: any; }) => ({
+    console.log('filteredEvents con padre:', filteredEvents.map((e: CalendarCompleteEventData) => ({
         id: e.id, title: e.title, padre: e.padre
     })));
 
@@ -95,7 +98,7 @@ export const MyEventsPage = () => {
         for (const ev of filteredEvents) {
             if (ev.padre) {
                 const parent = map.get(ev.padre);
-                const child  = map.get(ev.id!);
+                const child = map.get(ev.id!);
                 if (parent instanceof CompositeNode && child) {
                     parent.add(child);
                 }
@@ -108,10 +111,10 @@ export const MyEventsPage = () => {
     // FIX colores: etiqueta de urgencia basada en bgColor del Decorator
     const getUrgencyLabel = (bgColor?: string) => {
         switch (bgColor) {
-            case '#FF0000': return { label: '🔴 Urgente',  badge: 'danger'  };
-            case '#FFA500': return { label: '🟡 Medio',    badge: 'warning' };
-            case '#00CC00': return { label: '🟢 Tranquilo',badge: 'success' };
-            default:        return { label: '⚫ Pasado',   badge: 'dark'    };
+            case '#FF0000': return { label: '🔴 Urgente', badge: 'danger' };
+            case '#FFA500': return { label: '🟡 Medio', badge: 'warning' };
+            case '#00CC00': return { label: '🟢 Tranquilo', badge: 'success' };
+            default: return { label: '⚫ Pasado', badge: 'dark' };
         }
     };
 

@@ -1,37 +1,37 @@
 export interface User {
-    id: string;
+    _id: string;
     name: string;
 }
 
 export interface CalendarEventData {
-    id?:      string;
-    title:    string;
-    notes:    string;
-    start:    Date | string;
-    end:      Date | string;
+    id?: string;
+    title: string;
+    notes: string;
+    start: Date | string;
+    end: Date | string;
     bgColor?: string;
-    user?:    User;
-    padre?:   string | null;  // COMPOSITE
+    user?: User;
+    padre?: string | null;  // COMPOSITE
 }
 
 export interface CalendarCompleteEventData {
-    id?:      string;
-    title:    string;
-    notes:    string;
-    start:    Date | string;
-    end:      Date | string;
+    id?: string;
+    title: string;
+    notes: string;
+    start: Date | string;
+    end: Date | string;
     bgColor?: string;
-    user?:    User;
+    user?: User;
     category: CategoryKey;
-    padre?:   string | null;  // COMPOSITE
+    padre?: string | null;  // COMPOSITE
 }
 
 export const categories = {
     general: 'General',
-    work:    'Trabajo',
-    sports:  'Deportes',
-    family:  'Familia',
-    travel:  'Viajes',
+    work: 'Trabajo',
+    sports: 'Deportes',
+    family: 'Familia',
+    travel: 'Viajes',
 } as const;
 
 export type CategoryKey = keyof typeof categories;
