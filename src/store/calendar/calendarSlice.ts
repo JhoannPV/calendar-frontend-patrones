@@ -1,52 +1,68 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CalendarCompleteEventData } from '../../calendar';
+
+interface CalendarState {
+    events:      CalendarCompleteEventData[];
+    activeEvent: CalendarCompleteEventData | null;
+}
+
+const initialState: CalendarState = {
+    events:      [],
+    activeEvent: null,
+};
 
 export const calendarSlice = createSlice({
     name: 'calendar',
-    initialState: {
-        isLoadingEvents: true,
-        events: [] as CalendarCompleteEventData[],
-        activeEvent: null,
-    },
+    initialState,
     reducers: {
-        onSetActiveEvent: (state, { payload }) => {
+
+        onSetActiveEvent: (state, { payload }: PayloadAction<CalendarCompleteEventData | null>) => {
             state.activeEvent = payload;
         },
 
-        onAddNewEvent: (state, { payload }) => {
+        onAddNewEvent: (state, { payload }: PayloadAction<CalendarCompleteEventData>) => {
             state.events.push(payload);
             state.activeEvent = null;
         },
 
-        onUpdateEvent: (state, { payload }) => {
-            // CORREGIDO: comparar por id (sin guión bajo)
+        onUpdateEvent: (state, { payload }: PayloadAction<CalendarCompleteEventData>) => {
             state.events = state.events.map(event =>
                 event.id === payload.id ? payload : event
             );
         },
 
+        // Elimina el activeEvent del store (FabDelete en CalendarPage)
         onDeleteEvent: (state) => {
             if (state.activeEvent) {
-                const active = state.activeEvent as CalendarCompleteEventData;
-                // CORREGIDO: comparar por id (sin guión bajo)
-                state.events = state.events.filter(event => event.id !== active.id);
+                const deletedId = (state.activeEvent as CalendarCompleteEventData).id;
+                state.events = state.events.filter(e =>
+                    e.id !== deletedId && e.padre !== deletedId
+                );
+            }
+            state.activeEvent = null;
+        },
+
+        // Elimina por ID + hijos en cascada (MyEventsPage)
+        onDeleteEventById: (state, { payload: eventId }: PayloadAction<string>) => {
+            state.events = state.events.filter(e =>
+                e.id !== eventId && e.padre !== eventId
+            );
+            if ((state.activeEvent as CalendarCompleteEventData | null)?.id === eventId) {
                 state.activeEvent = null;
             }
         },
 
-        onLoadEvents: (state, { payload = [] }) => {
-            state.isLoadingEvents = false;
-            // CORREGIDO: reemplaza todo en vez de hacer push
-            // así no hay duplicados al recargar la página
-            state.events = payload;
+        onLoadEvents: (state, { payload }: PayloadAction<CalendarCompleteEventData[]>) => {
+            state.events      = payload;
+            state.activeEvent = null;
         },
 
+        // Limpia todo al hacer logout
         onLogoutCalendar: (state) => {
-            state.isLoadingEvents = true;
-            state.events = [];
+            state.events      = [];
             state.activeEvent = null;
-        }
-    }
+        },
+    },
 });
 
 export const {
@@ -54,6 +70,7 @@ export const {
     onAddNewEvent,
     onUpdateEvent,
     onDeleteEvent,
+    onDeleteEventById,
     onLoadEvents,
-    onLogoutCalendar
+    onLogoutCalendar,
 } = calendarSlice.actions;
