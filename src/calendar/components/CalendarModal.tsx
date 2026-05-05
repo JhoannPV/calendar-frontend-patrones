@@ -55,6 +55,7 @@ export const CalendarModal = () => {
         notes: '',
         start: new Date(),
         end:   addHours(new Date(), 2),
+        category: 'general',
     });
 
     const [category, setCategory] = useState<CategoryKey>('general');
@@ -69,7 +70,7 @@ export const CalendarModal = () => {
     // y que no sea el mismo evento que se está editando
     const parentOptions = useMemo(() => {
         return events.filter((e: CalendarCompleteEventData) =>
-            e.user?._id === (user as { id?: string })?.id &&
+            e.user?.id === (user as { id?: string })?.id &&
             !e.padre &&
             e.id !== activeEvent?.id
         );
@@ -151,7 +152,7 @@ export const CalendarModal = () => {
             .setNotes(formValues.notes)
             .setStart(showDatePickers ? formValues.start : null)
             .setEnd(showDatePickers   ? formValues.end   : null)
-            .setBgColor(formValues.bgColor)
+            .setBgColor(actAsParent ? '#6c757d' : formValues.bgColor)
             .setUser(formValues.user)
             .setId(formValues.id)
             .setPadre(selectedPadre || null)
