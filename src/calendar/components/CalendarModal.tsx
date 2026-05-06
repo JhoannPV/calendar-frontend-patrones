@@ -55,7 +55,6 @@ export const CalendarModal = () => {
         notes: '',
         start: new Date(),
         end: addHours(new Date(), 2),
-        category: 'general',
     });
 
     const [category, setCategory] = useState<CategoryKey>('general');

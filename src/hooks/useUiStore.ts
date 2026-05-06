@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux"
-import { onCloseDateModal, onOpenDateModal } from "../store";
+import { onCloseDateModal, onOpenDateModal, onToggleTheme } from "../store";
 import type { RootState } from ".";
 
 
@@ -8,6 +8,7 @@ export const useUiStore = () => {
 
     const {
         isDateModalOpen,
+        theme,
     } = useSelector((state: RootState) => state.ui);
 
     const openDateModal = () => {
@@ -26,13 +27,19 @@ export const useUiStore = () => {
         }
     }
 
+    const toggleTheme = () => {
+        dispatch(onToggleTheme());
+    }
+
     return {
         //* Propiedades
         isDateModalOpen,
+        theme,
 
         //* Métodos
         openDateModal,
         closeDateModal,
         toggleDateModal,
+        toggleTheme,
     }
 }

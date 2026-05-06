@@ -5,18 +5,14 @@ export interface User {
 
 // src/calendar/types/CalendarTypes.ts
 export interface CalendarEventData {
-    id?:      string;
-    title:    string;
-    notes:    string;
-    start:    Date | string | null;
-    end:      Date | string | null;
+    id?: string;
+    title: string;
+    notes: string;
+    start: Date | string | null;
+    end: Date | string | null;
     bgColor?: string;
-    category: string;
-    padre?:   string | null;
-    user?: {
-        id:    string;
-        name:  string;
-    };
+    padre?: string | null;
+    user?: User;
 }
 
 export interface CalendarCompleteEventData {

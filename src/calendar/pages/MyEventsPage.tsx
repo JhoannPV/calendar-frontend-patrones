@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { categories, type CalendarCompleteEventData, type CategoryKey, type User } from '..';
 import { CalendarEventCard, DarkThemeImplementor, LightThemeImplementor } from '../bridge';
 import type { IThemeImplementor } from '../bridge';
-import { useAuthStore, useCalendarStore } from '../../hooks';
+import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { Navbar } from '../components/Navbar';
 import { CompositeNode } from '../composite/composite-node';
 import { LeafNode } from '../composite/leaf-node';
@@ -14,25 +14,22 @@ import type { ICalendarNode } from '../composite/calendar-node.interface';
 export const MyEventsPage = () => {
     const { user } = useAuthStore();
     const { events, startLoadingEvents, startDeletingEventById } = useCalendarStore();
+    const { theme: themeName, toggleTheme } = useUiStore();
     const navigate = useNavigate();
 
     const [selectedCategory, setSelectedCategory] = useState<CategoryKey | 'all'>('all');
     const [titleFilter, setTitleFilter] = useState('');
     const [parentFilters, setParentFilters] = useState<Record<string, { title: string; category: CategoryKey | 'all' }>>({});
-    const [theme, setTheme] = useState<IThemeImplementor>(new LightThemeImplementor());
+
+    const theme: IThemeImplementor = useMemo(
+        () => themeName === 'dark' ? new DarkThemeImplementor() : new LightThemeImplementor(),
+        [themeName]
+    );
 
     // Siempre recargar al entrar a la página
     useEffect(() => {
         startLoadingEvents();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const toggleTheme = () =>
-        setTheme(prev =>
-            prev.getThemeName() === 'light'
-                ? new DarkThemeImplementor()
-                : new LightThemeImplementor()
-        );
+    }, [startLoadingEvents]);
 
     const updateParentFilter = (parentId: string, field: 'title' | 'category', value: string) => {
         setParentFilters(prev => ({
