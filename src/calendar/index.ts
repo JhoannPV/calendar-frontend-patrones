@@ -1,5 +1,6 @@
 export * from './pages/CalendarPage';
 export * from './pages/MyEventsPage';
+export * from './types/CalendarTypes';
 export * from './components/Navbar';
 export * from './components/CalendarEvent';
 export * from './types/CalendarTypes';
@@ -11,5 +12,9 @@ export * from './builders/DirectorEventBuilder';
 export * from './flyweight/calendar-type-flyweight/calendar-type-flyweight';
 export * from './flyweight/calendar-type-factory/calendar-type-factory';
 export * from './flyweight/calendar-type-event/calendar-type-event';
-export { CalendarEventCard, LightThemeImplementor, DarkThemeImplementor } from './bridge';
-export type { IThemeImplementor, ThemeStyles } from './bridge';
+export * from './bridge/calendar-component/calendar-component-abstraction/calendar-component';
+export * from './bridge/calendar-component/calendar-components/calendar-event-card-component';
+export * from './bridge/calendar-component/components/calendar-event-card';
+export * from './bridge/theme-implementor/theme-interface/theme.implementor.interface';
+export * from './bridge/theme-implementor/theme-implementors/dark-theme.implementor';
+export * from './bridge/theme-implementor/theme-implementors/light-theme.implementor';

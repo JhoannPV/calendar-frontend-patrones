@@ -1,6 +1,6 @@
 // src/calendar/bridge/theme-implementor/light-theme.implementor.ts
 
-import type { IThemeImplementor, ThemeStyles } from './theme.implementor.interface';
+import type { IThemeImplementor, ThemeStyles } from '../theme-interface/theme.implementor.interface';
 
 export class LightThemeImplementor implements IThemeImplementor {
   getStyles(): ThemeStyles {

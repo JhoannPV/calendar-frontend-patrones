@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { categories, type CalendarCompleteEventData, type CategoryKey, type User } from '..';
-import { CalendarEventCard, DarkThemeImplementor, LightThemeImplementor } from '../bridge';
-import type { IThemeImplementor } from '../bridge';
+import { CalendarEventCard, CalendarEventCardComponent, categories, DarkThemeImplementor, LightThemeImplementor, type CalendarCompleteEventData, type CategoryKey, type IThemeImplementor, type User } from '..';
 import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { Navbar } from '../components/Navbar';
 import { CompositeNode } from '../composite/composite-node';
@@ -254,9 +252,13 @@ export const MyEventsPage = () => {
                                                     <DeleteBtn id={child.getData().id!} />
                                                 </div>
                                                 <CalendarEventCard
-                                                    event={child.getData()}
-                                                    theme={theme}
-                                                    parentName={node.getData().title}
+                                                    card={
+                                                        new CalendarEventCardComponent(
+                                                            theme,
+                                                            child.getData(),
+                                                            node.getData().title // nombre del padre
+                                                        )
+                                                    }
                                                 />
                                             </div>
                                         );
@@ -297,7 +299,15 @@ export const MyEventsPage = () => {
                                     <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
                                     <DeleteBtn id={node.getData().id!} />
                                 </div>
-                                <CalendarEventCard event={node.getData()} theme={theme} parentName={parentName} />
+                                <CalendarEventCard
+                                    card={
+                                        new CalendarEventCardComponent(
+                                            theme,
+                                            node.getData(),
+                                            parentName
+                                        )
+                                    }
+                                />
                             </div>
                         );
                     })}

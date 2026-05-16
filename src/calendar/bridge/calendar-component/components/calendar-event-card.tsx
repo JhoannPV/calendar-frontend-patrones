@@ -1,30 +1,24 @@
-// src/calendar/bridge/calendar-event-card/calendar-event-card.tsx
+import type { CalendarEventCardComponent } from "../..";
+import { categories, type CategoryKey } from "../../..";
 
-import type { CalendarCompleteEventData } from '../../types/CalendarTypes';
-import type { IThemeImplementor } from '../theme-implementor/theme.implementor.interface';
-import { categories, type CategoryKey } from '../../types/CalendarTypes';
+export const CalendarEventCard = ({ card }: { card: CalendarEventCardComponent }) => {
+    const theme = card.getTheme();
+    const event = card.getEvent();
+    const parentName = card.getParentName();
 
-interface CalendarEventCardProps {
-    event:       CalendarCompleteEventData;
-    theme:       IThemeImplementor;
-    /** Nombre del evento padre, si este es un sub-evento */
-    parentName?: string;
-}
-
-export const CalendarEventCard = ({ event, theme, parentName }: CalendarEventCardProps) => {
-    const styles        = theme.getStyles();
+    const styles = theme.getStyles();
     const categoryLabel = categories[event.category as CategoryKey] ?? event.category;
-    const headerColor   = event.bgColor || '#347CF7';
+    const headerColor = event.bgColor || '#347CF7';
     // Es evento padre si no tiene fechas asignadas
-    const isParent      = !event.start && !event.end;
+    const isParent = !event.start && !event.end;
 
     return (
         <div
             style={{
-                background:   styles.cardBackground,
-                border:       styles.cardBorder,
+                background: styles.cardBackground,
+                border: styles.cardBorder,
                 borderRadius: '8px',
-                overflow:     'hidden',
+                overflow: 'hidden',
                 marginBottom: '8px',
             }}
         >
@@ -73,12 +67,12 @@ export const CalendarEventCard = ({ event, theme, parentName }: CalendarEventCar
                 <div>
                     <span
                         style={{
-                            display:      'inline-block',
-                            padding:      '2px 10px',
+                            display: 'inline-block',
+                            padding: '2px 10px',
                             borderRadius: '12px',
-                            fontSize:     '0.75rem',
-                            background:   styles.badgeBackground,
-                            color:        styles.badgeColor,
+                            fontSize: '0.75rem',
+                            background: styles.badgeBackground,
+                            color: styles.badgeColor,
                         }}
                     >
                         {categoryLabel}
