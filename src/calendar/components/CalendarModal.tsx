@@ -65,6 +65,15 @@ export const CalendarModal = () => {
     // Toggle: ¿este evento actúa como padre (evento mayor sin fechas)?
     const [actAsParent, setActAsParent] = useState(false);
 
+    const activeEventIsParent = useMemo(() => {
+        if (!activeEvent?.id) return false;
+
+        const hasNoDate = !activeEvent.start && !activeEvent.end;
+        const hasChildren = events.some((e: CalendarCompleteEventData) => e.padre === activeEvent.id);
+
+        return hasNoDate || hasChildren;
+    }, [activeEvent, events]);
+
     // Eventos disponibles como padre: del usuario actual, sin padre propio,
     // y que no sea el mismo evento que se está editando
     const parentOptions = useMemo(() => {
@@ -87,17 +96,14 @@ export const CalendarModal = () => {
                 setFormValues({ ...activeEvent });
                 setCategory((activeEvent.category as CategoryKey) ?? 'general');
                 setSelectedPadre(activeEvent.padre ?? '');
-                const hasNoDate = !activeEvent.start && !activeEvent.end;
-                const hasChildren = events.some((e: CalendarCompleteEventData) => e.padre === activeEvent.id);
-                const isParentEvent = hasNoDate || hasChildren;
-                setActAsParent(isParentEvent);
-                if (isParentEvent) {
+                setActAsParent(activeEventIsParent);
+                if (activeEventIsParent) {
                     setCategory('general');
                 }
             }, 0);
             return () => clearTimeout(timeOut);
         }
-    }, [activeEvent, events]);
+    }, [activeEvent, activeEventIsParent]);
 
     const onInputChange = ({ target }: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormValues({ ...formValues, [target.name]: target.value });
@@ -202,12 +208,14 @@ export const CalendarModal = () => {
                             type="checkbox"
                             id="actAsParentSwitch"
                             checked={actAsParent}
+                            disabled={activeEventIsParent}
                             onChange={(e) => onActAsParentChange(e.target.checked)}
                         />
                         <label className="form-check-label" htmlFor="actAsParentSwitch">
                             <strong>Este es un evento mayor</strong>
                             <small className="d-block text-muted">
                                 Los eventos mayores no tienen fecha — agrupan sub-eventos
+                                {activeEventIsParent ? ' y no se puede cambiar este estado al editarlo.' : ''}
                             </small>
                         </label>
                     </div>

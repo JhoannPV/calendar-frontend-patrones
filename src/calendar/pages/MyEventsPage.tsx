@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { categories, type CalendarCompleteEventData, type CategoryKey, type User } from '..';
-import { CalendarEventCard, DarkThemeImplementor, LightThemeImplementor } from '../bridge';
-import type { IThemeImplementor } from '../bridge';
+import { CalendarEventCard, CalendarEventCardComponent, CalendarModal, categories, DarkThemeImplementor, LightThemeImplementor, type CalendarCompleteEventData, type CategoryKey, type IThemeImplementor, type User } from '..';
 import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { Navbar } from '../components/Navbar';
 import { CompositeNode } from '../composite/composite-node';
@@ -13,8 +11,8 @@ import type { ICalendarNode } from '../composite/calendar-node.interface';
 
 export const MyEventsPage = () => {
     const { user } = useAuthStore();
-    const { events, startLoadingEvents, startDeletingEventById } = useCalendarStore();
-    const { theme: themeName, toggleTheme } = useUiStore();
+    const { events, setActiveEvent, startLoadingEvents, startDeletingEventById } = useCalendarStore();
+    const { theme: themeName, toggleTheme, openDateModal } = useUiStore();
     const navigate = useNavigate();
 
     const [selectedCategory, setSelectedCategory] = useState<CategoryKey | 'all'>('all');
@@ -121,9 +119,23 @@ export const MyEventsPage = () => {
         </button>
     );
 
+    const EditBtn = ({ event }: { event: CalendarCompleteEventData }) => (
+        <button
+            className="btn btn-sm btn-outline-primary"
+            title="Editar evento"
+            onClick={() => {
+                setActiveEvent(event);
+                openDateModal();
+            }}
+        >
+            <i className="fas fa-pen"></i>
+        </button>
+    );
+
     return (
         <>
             <Navbar />
+            <CalendarModal />
             <div className="container mt-4">
 
                 {/* CABECERA */}
@@ -213,6 +225,7 @@ export const MyEventsPage = () => {
                                         </span>
                                         <div className="d-flex align-items-center gap-2">
                                             <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
+                                            <EditBtn event={node.getData()} />
                                             <DeleteBtn id={nodeId} />
                                         </div>
                                     </div>
@@ -251,12 +264,17 @@ export const MyEventsPage = () => {
                                             <div key={child.getData().id} className="ms-4 border-start border-secondary ps-3 mt-2">
                                                 <div className="mb-1 d-flex align-items-center gap-2">
                                                     <span className={`badge bg-${cu.badge}`}>{cu.label}</span>
+                                                    <EditBtn event={child.getData()} />
                                                     <DeleteBtn id={child.getData().id!} />
                                                 </div>
                                                 <CalendarEventCard
-                                                    event={child.getData()}
-                                                    theme={theme}
-                                                    parentName={node.getData().title}
+                                                    card={
+                                                        new CalendarEventCardComponent(
+                                                            theme,
+                                                            child.getData(),
+                                                            node.getData().title // nombre del padre
+                                                        )
+                                                    }
                                                 />
                                             </div>
                                         );
@@ -279,6 +297,7 @@ export const MyEventsPage = () => {
                                         </span>
                                         <div className="d-flex align-items-center gap-2">
                                             <span className="badge bg-secondary">Evento mayor</span>
+                                            <EditBtn event={node.getData()} />
                                             <DeleteBtn id={node.getData().id!} />
                                         </div>
                                     </div>
@@ -295,9 +314,18 @@ export const MyEventsPage = () => {
                             <div key={node.getData().id} className="col-md-6 col-lg-4 mb-3">
                                 <div className="mb-1 d-flex align-items-center gap-2">
                                     <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
+                                    <EditBtn event={node.getData()} />
                                     <DeleteBtn id={node.getData().id!} />
                                 </div>
-                                <CalendarEventCard event={node.getData()} theme={theme} parentName={parentName} />
+                                <CalendarEventCard
+                                    card={
+                                        new CalendarEventCardComponent(
+                                            theme,
+                                            node.getData(),
+                                            parentName
+                                        )
+                                    }
+                                />
                             </div>
                         );
                     })}
