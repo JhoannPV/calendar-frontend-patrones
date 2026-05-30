@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useCallback } from "react";
 import type { ErrorResponse, RootState } from ".";
-import { onAddNewEvent, onDeleteEvent, onLoadEvents, onSetActiveEvent, onUpdateEvent, onDeleteEventById } from "../store";
+import { onAddNewEvent, onDeleteEvent, onLoadEvents, onSetActiveEvent, onUpdateEvent, onDeleteEventById, onSetDeletedEvents, onRemoveEventsByIds } from "../store";
 import type { CalendarCompleteEventData } from "../calendar";
 import { convertEventsToDateEvents } from "../helpers";
 import Swal from "sweetalert2";
@@ -35,14 +35,14 @@ export const useCalendarStore = () => {
                 dispatch(onUpdateEvent(remapPadre({
                     ...data.event,
                     start: data.event.start ? new Date(data.event.start) : null,
-                    end:   data.event.end   ? new Date(data.event.end)   : null,
+                    end: data.event.end ? new Date(data.event.end) : null,
                 })));
             } else {
                 const { data } = await api.post('/events/create-event', payload);
                 dispatch(onAddNewEvent(remapPadre({
                     ...data.event,
                     start: data.event.start ? new Date(data.event.start) : null,
-                    end:   data.event.end   ? new Date(data.event.end)   : null,
+                    end: data.event.end ? new Date(data.event.end) : null,
                 })));
             }
 
@@ -94,6 +94,59 @@ export const useCalendarStore = () => {
         }
     };
 
+    // Elimina por ID en cascada usando la ruta nueva (devuelve arreglo de eventos eliminados)
+    const startDeletingEventCascade = async (eventId: string) => {
+        const confirm = await Swal.fire({
+            title: '¿Eliminar evento y todos sus sub-eventos?',
+            text: 'Esta acción borrará el evento y todos sus descendientes.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const { data } = await api.delete(`/events/delete-event-cascade/${eventId}`);
+
+            // data.events is an array of deleted events (decorated)
+            const deleted: CalendarCompleteEventData[] = (
+                (data.events ?? []) as EventFromApi[]
+            ).map(ev => {
+                let s: Date | null;
+                if (ev.start) {
+                    s = typeof ev.start === 'string' ? new Date(ev.start) : ev.start as Date;
+                } else s = null;
+
+                let e: Date | null;
+                if (ev.end) {
+                    e = typeof ev.end === 'string' ? new Date(ev.end) : ev.end as Date;
+                } else e = null;
+
+                return remapPadre({
+                    ...ev,
+                    start: s,
+                    end: e,
+                });
+            });
+
+            // Guardar en store el arreglo de elementos eliminados para un posible undo futuro
+            dispatch(onSetDeletedEvents(deleted));
+
+            // Eliminar los ids del store para actualizar UI inmediatamente
+            const ids = deleted.map(d => d.id!).filter(Boolean) as string[];
+            dispatch(onRemoveEventsByIds(ids));
+
+            Swal.fire('Eliminados', data.msg || 'Eventos eliminados', 'success');
+        } catch (error) {
+            const { response } = error as ErrorResponse;
+            Swal.fire('Error al Eliminar', response.data?.error, 'error');
+        }
+    };
+
     const startLoadingEvents = useCallback(async () => {
         try {
             const { data } = await api.get('/events/get-events');
@@ -114,6 +167,7 @@ export const useCalendarStore = () => {
         startSavingEvent,
         startDeletingEvent,
         startDeletingEventById,
+        startDeletingEventCascade,
         startLoadingEvents,
     };
 };

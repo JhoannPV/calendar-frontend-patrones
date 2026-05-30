@@ -2,13 +2,15 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CalendarCompleteEventData } from '../../calendar';
 
 interface CalendarState {
-    events:      CalendarCompleteEventData[];
+    events: CalendarCompleteEventData[];
     activeEvent: CalendarCompleteEventData | null;
+    lastDeletedEvents: CalendarCompleteEventData[] | null;
 }
 
 const initialState: CalendarState = {
-    events:      [],
+    events: [],
     activeEvent: null,
+    lastDeletedEvents: null,
 };
 
 export const calendarSlice = createSlice({
@@ -52,14 +54,33 @@ export const calendarSlice = createSlice({
             }
         },
 
+        // Guarda el arreglo de eventos eliminados (para undo futuro)
+        onSetDeletedEvents: (state, { payload }: PayloadAction<CalendarCompleteEventData[]>) => {
+            state.lastDeletedEvents = payload;
+        },
+
+        // Limpia el arreglo de eventos eliminados
+        onClearDeletedEvents: (state) => {
+            state.lastDeletedEvents = null;
+        },
+
+        // Elimina múltiples eventos por id
+        onRemoveEventsByIds: (state, { payload: ids }: PayloadAction<string[]>) => {
+            const idSet = new Set(ids);
+            state.events = state.events.filter(e => !idSet.has(e.id ?? ''));
+            if (state.activeEvent && idSet.has(state.activeEvent.id ?? '')) {
+                state.activeEvent = null;
+            }
+        },
+
         onLoadEvents: (state, { payload }: PayloadAction<CalendarCompleteEventData[]>) => {
-            state.events      = payload;
+            state.events = payload;
             state.activeEvent = null;
         },
 
         // Limpia todo al hacer logout
         onLogoutCalendar: (state) => {
-            state.events      = [];
+            state.events = [];
             state.activeEvent = null;
         },
     },
@@ -71,6 +92,9 @@ export const {
     onUpdateEvent,
     onDeleteEvent,
     onDeleteEventById,
+    onSetDeletedEvents,
+    onClearDeletedEvents,
+    onRemoveEventsByIds,
     onLoadEvents,
     onLogoutCalendar,
 } = calendarSlice.actions;

@@ -19,8 +19,8 @@ export interface CalendarCompleteEventData {
     id?: string;
     title: string;
     notes: string;
-    start: Date | string;
-    end: Date | string;
+    start: Date | string | null;
+    end: Date | string | null;
     bgColor?: string;
     user?: User;
     category: CategoryKey;

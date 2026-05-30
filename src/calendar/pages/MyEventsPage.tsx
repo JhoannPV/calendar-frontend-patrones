@@ -11,7 +11,7 @@ import type { ICalendarNode } from '../composite/calendar-node.interface';
 
 export const MyEventsPage = () => {
     const { user } = useAuthStore();
-    const { events, setActiveEvent, startLoadingEvents, startDeletingEventById } = useCalendarStore();
+    const { events, setActiveEvent, startLoadingEvents, startDeletingEventById, startDeletingEventCascade } = useCalendarStore();
     const { theme: themeName, toggleTheme, openDateModal } = useUiStore();
     const navigate = useNavigate();
 
@@ -113,7 +113,7 @@ export const MyEventsPage = () => {
         <button
             className="btn btn-sm btn-outline-danger"
             title="Eliminar evento"
-            onClick={() => startDeletingEventById(id)}
+            onClick={() => startDeletingEventCascade(id)}
         >
             <i className="fas fa-trash-alt"></i>
         </button>
