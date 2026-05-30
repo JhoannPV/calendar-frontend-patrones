@@ -109,11 +109,11 @@ export const MyEventsPage = () => {
         }
     };
 
-    const DeleteBtn = ({ id }: { id: string }) => (
+    const DeleteBtn = ({ onClick }: { onClick: () => void }) => (
         <button
             className="btn btn-sm btn-outline-danger"
             title="Eliminar evento"
-            onClick={() => startDeletingEventCascade(id)}
+            onClick={onClick}
         >
             <i className="fas fa-trash-alt"></i>
         </button>
@@ -226,7 +226,7 @@ export const MyEventsPage = () => {
                                         <div className="d-flex align-items-center gap-2">
                                             <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
                                             <EditBtn event={node.getData()} />
-                                            <DeleteBtn id={nodeId} />
+                                            <DeleteBtn onClick={() => startDeletingEventCascade(nodeId)} />
                                         </div>
                                     </div>
                                     <div className="ms-4 mb-3 rounded-3 border border-light-subtle bg-body-tertiary p-2">
@@ -265,7 +265,7 @@ export const MyEventsPage = () => {
                                                 <div className="mb-1 d-flex align-items-center gap-2">
                                                     <span className={`badge bg-${cu.badge}`}>{cu.label}</span>
                                                     <EditBtn event={child.getData()} />
-                                                    <DeleteBtn id={child.getData().id!} />
+                                                    <DeleteBtn onClick={() => startDeletingEventById(child.getData().id!)} />
                                                 </div>
                                                 <CalendarEventCard
                                                     card={
@@ -298,7 +298,7 @@ export const MyEventsPage = () => {
                                         <div className="d-flex align-items-center gap-2">
                                             <span className="badge bg-secondary">Evento mayor</span>
                                             <EditBtn event={node.getData()} />
-                                            <DeleteBtn id={node.getData().id!} />
+                                            <DeleteBtn onClick={() => startDeletingEventById(node.getData().id!)} />
                                         </div>
                                     </div>
                                 </div>
@@ -315,7 +315,7 @@ export const MyEventsPage = () => {
                                 <div className="mb-1 d-flex align-items-center gap-2">
                                     <span className={`badge bg-${urgency.badge}`}>{urgency.label}</span>
                                     <EditBtn event={node.getData()} />
-                                    <DeleteBtn id={node.getData().id!} />
+                                    <DeleteBtn onClick={() => startDeletingEventById(node.getData().id!)} />
                                 </div>
                                 <CalendarEventCard
                                     card={

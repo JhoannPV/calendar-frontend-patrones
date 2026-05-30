@@ -68,11 +68,11 @@ export const useCalendarStore = () => {
         }
     };
 
-    // Elimina por ID directamente — usado desde MyEventsPage para padres e hijos
+    // Elimina solo un evento puntual (hijo o independiente)
     const startDeletingEventById = async (eventId: string) => {
         const confirm = await Swal.fire({
-            title: '¿Eliminar evento?',
-            text: 'Si es un evento mayor, sus sub-eventos también serán eliminados.',
+            title: '¿Eliminar este evento?',
+            text: 'Se eliminará solo este evento.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
@@ -94,7 +94,7 @@ export const useCalendarStore = () => {
         }
     };
 
-    // Elimina por ID en cascada usando la ruta nueva (devuelve arreglo de eventos eliminados)
+    // Elimina en cascada al evento padre y sus descendientes
     const startDeletingEventCascade = async (eventId: string) => {
         const confirm = await Swal.fire({
             title: '¿Eliminar evento y todos sus sub-eventos?',
