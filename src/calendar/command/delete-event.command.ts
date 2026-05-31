@@ -3,26 +3,26 @@ import type { CommandEvent } from "./command-event.interface";
 import { EventsCommandReceiver } from "./events-command.receiver";
 
 export class DeleteEventCommand implements CommandEvent {
-    private deletedEvent: CalendarCompleteEventData | null = null;
+  private deletedEvent: CalendarCompleteEventData | null = null;
 
-    constructor(
-        private readonly receiver: EventsCommandReceiver,
-        private readonly eventId: string,
-    ) { }
+  constructor(
+    private readonly receiver: EventsCommandReceiver,
+    private readonly eventId: string,
+  ) { }
 
-    async execute(): Promise<CalendarCompleteEventData | null> {
-        const res = await this.receiver.deleteEventById(this.eventId);
-        this.deletedEvent = res.deletedEvent ?? null;
-        return this.deletedEvent;
-    }
+  async execute(): Promise<CalendarCompleteEventData | null> {
+    const res = await this.receiver.deleteEventById(this.eventId);
+    this.deletedEvent = res.deletedEvent ?? null;
+    return this.deletedEvent;
+  }
 
-    async undo(): Promise<CalendarCompleteEventData | null> {
-        if (!this.deletedEvent) return null;
-        return await this.receiver.createEvent(this.deletedEvent);
-    }
+  async undo(): Promise<CalendarCompleteEventData | null> {
+    if (!this.deletedEvent) return null;
+    return await this.receiver.createEvent(this.deletedEvent);
+  }
 
-    // expose deleted event for callers that need the full snapshot
-    getDeletedEvent(): CalendarCompleteEventData | null {
-        return this.deletedEvent;
-    }
+  // expose deleted event for callers that need the full snapshot
+  getDeletedEvent(): CalendarCompleteEventData | null {
+    return this.deletedEvent;
+  }
 }
