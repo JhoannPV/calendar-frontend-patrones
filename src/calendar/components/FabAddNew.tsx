@@ -11,10 +11,10 @@ export const FabAddNew = () => {
     const currentUser: User | undefined = (
         user &&
         typeof user === 'object' &&
-        '_id' in user &&
+        'id' in user &&
         'name' in user
     )
-        ? { id: String(user.id), name: String(user.name) }
+        ? { id: String(user.id), name: String(user.name), email: 'email' in user ? String(user.email) : undefined }
         : undefined;
 
     const handleClickNew = () => {

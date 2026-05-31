@@ -5,6 +5,7 @@ import { LoginPage } from "../auth";
 import { CalendarPage, MyEventsPage } from "../calendar";
 import { useAuthStore } from "../hooks";
 import { useEffect } from "react";
+import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
 export const AppRouter = () => {
     const { status, checkAuthToken } = useAuthStore();
@@ -34,8 +35,10 @@ export const AppRouter = () => {
                         )
                         : (
                             <>
-                                <Route path="/" element={<CalendarPage />} />
-                                <Route path="/my-events" element={<MyEventsPage />} />
+                                <Route element={<AuthenticatedLayout />}>
+                                    <Route index element={<CalendarPage />} />
+                                    <Route path="my-events" element={<MyEventsPage />} />
+                                </Route>
                                 <Route path="/*" element={<Navigate to="/" />} />
                             </>
                         )

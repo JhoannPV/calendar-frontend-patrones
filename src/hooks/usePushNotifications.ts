@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CalendarApi } from '../api';
+import Swal from 'sweetalert2';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -65,5 +66,32 @@ export const usePushNotifications = () => {
     register().catch((err: unknown) => {
       console.error('🔔 [Push] Error en el registro:', err);
     });
+  }, []);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; title?: string; body?: string } | undefined;
+
+      if (data?.type !== 'push-notification') return;
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: data.title ?? 'Calendario',
+        text: data.body ?? '',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      });
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
   }, []);
 };

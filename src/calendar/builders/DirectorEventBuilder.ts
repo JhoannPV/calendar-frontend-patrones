@@ -1,8 +1,7 @@
 import { EventBuilder } from "..";
 
 export class DirectorEventBuilder {
-    static createEventComplete: any;
-    createEventComplete() {
-        return new EventBuilder()
+    createEventComplete(): EventBuilder {
+        return new EventBuilder();
     }
 }

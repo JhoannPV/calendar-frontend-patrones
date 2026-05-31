@@ -40,12 +40,14 @@ export class DeleteEventCascadeCommand implements CommandEvent {
           ? createdIdMap.get(originalParentId) ?? null
           : null;
 
-        const recreated = await this.receiver.createEvent({
+        const created = await this.receiver.createEvent({
           ...original,
           padre: remappedParentId,
         });
 
-        if (original.id && recreated.id) {
+        const recreated = created?.event ?? null;
+
+        if (original.id && recreated?.id) {
           createdIdMap.set(original.id, recreated.id);
         }
 

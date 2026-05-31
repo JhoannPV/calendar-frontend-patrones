@@ -1,6 +1,11 @@
 import { CalendarApi } from "../../api";
 import type { CalendarCompleteEventData } from "../types/CalendarTypes";
-import type { DeleteCascadeResult, DeleteSingleResult } from "../types/events-command.types";
+import type {
+  DeleteCascadeResult,
+  DeleteSingleResult,
+  CreateResult,
+  UpdateResult,
+} from "../types/events-command.types";
 
 export class EventsCommandReceiver {
   private readonly api = CalendarApi.getInstance();
@@ -23,41 +28,36 @@ export class EventsCommandReceiver {
     };
   }
 
-  async updateEvent(event: CalendarCompleteEventData): Promise<CalendarCompleteEventData> {
+  async updateEvent(event: CalendarCompleteEventData): Promise<UpdateResult> {
     if (!event.id) throw new Error("Cannot update event without id");
     const { data } = await this.api.put(`/events/update-event/${event.id}`, this.toApiPayload(event));
-    return this.mapFromApi((data as any).event as Partial<CalendarCompleteEventData>);
+    const entity = this.mapFromApi(data.event as Partial<CalendarCompleteEventData>);
+    return { event: entity };
   }
 
-  async createEvent(event: CalendarCompleteEventData): Promise<CalendarCompleteEventData> {
+  async createEvent(event: CalendarCompleteEventData): Promise<CreateResult> {
     const { data } = await this.api.post("/events/create-event", this.toApiPayload(event));
-    return this.mapFromApi((data as any).event as Partial<CalendarCompleteEventData>);
+    const entity = this.mapFromApi(data.event as Partial<CalendarCompleteEventData>);
+    return { event: entity };
   }
 
   async deleteEventById(eventId: string): Promise<DeleteSingleResult> {
     const { data } = await this.api.delete(`/events/delete-event/${eventId}`);
 
-    const raw = (data as any);
-    const entity = raw?.event?.event as Partial<CalendarCompleteEventData> | undefined;
+    const entity = data?.event as Partial<CalendarCompleteEventData> | undefined;
 
     return {
-      message: raw?.event?.msg ?? "Event deleted",
+      message: data?.msg ?? data?.event?.msg ?? "Event deleted",
       deletedEvent: entity ? this.mapFromApi(entity) : null,
-      notifications: raw?.notifications ?? [],
     };
   }
 
   async deleteEventCascade(eventId: string): Promise<DeleteCascadeResult> {
     const { data } = await this.api.delete(`/events/delete-event-cascade/${eventId}`);
 
-    const raw = (data as any);
-
     return {
-      message: raw?.msg ?? "Events deleted",
-      deletedEvents: (raw?.events ?? []).map((ev: Partial<CalendarCompleteEventData>) =>
-        this.mapFromApi(ev)
-      ),
-      notifications: raw?.notifications ?? [],
+      message: data?.msg ?? "Events deleted",
+      deletedEvents: ((data?.events ?? []) as Partial<CalendarCompleteEventData>[]).map((ev) => this.mapFromApi(ev)),
     };
   }
 }

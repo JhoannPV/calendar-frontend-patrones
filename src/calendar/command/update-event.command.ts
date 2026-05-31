@@ -10,10 +10,12 @@ export class UpdateEventCommand implements CommandEvent {
   ) { }
 
   async execute(): Promise<CalendarCompleteEventData | null> {
-    return await this.receiver.updateEvent(this.nextEvent);
+    const res = await this.receiver.updateEvent(this.nextEvent);
+    return res?.event ?? null;
   }
 
   async undo(): Promise<CalendarCompleteEventData | null> {
-    return await this.receiver.updateEvent(this.previousEvent);
+    const res = await this.receiver.updateEvent(this.previousEvent);
+    return res?.event ?? null;
   }
 }

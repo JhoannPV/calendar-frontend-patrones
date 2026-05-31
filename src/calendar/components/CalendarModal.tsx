@@ -1,3 +1,5 @@
+// src/calendar/components/CalendarModal.tsx
+
 import { addHours, differenceInSeconds } from 'date-fns';
 import {
     useEffect, useMemo, useRef, useState,
@@ -207,7 +209,7 @@ export const CalendarModal = () => {
                             id="actAsParentSwitch"
                             checked={actAsParent}
                             disabled={activeEventIsParent}
-                            onChange={(e) => onActAsParentChange(e.target.checked)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => onActAsParentChange(e.target.checked)}
                         />
                         <label className="form-check-label" htmlFor="actAsParentSwitch">
                             <strong>Este es un evento mayor</strong>
@@ -317,7 +319,7 @@ export const CalendarModal = () => {
                         <select
                             className="form-select"
                             value={selectedPadre}
-                            onChange={(e) => setSelectedPadre(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedPadre(e.target.value)}
                         >
                             <option value="">— Sin grupo —</option>
                             {parentOptions.map((ev: CalendarCompleteEventData) => (

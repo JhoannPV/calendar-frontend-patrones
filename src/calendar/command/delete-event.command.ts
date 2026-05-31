@@ -18,7 +18,8 @@ export class DeleteEventCommand implements CommandEvent {
 
   async undo(): Promise<CalendarCompleteEventData | null> {
     if (!this.deletedEvent) return null;
-    return await this.receiver.createEvent(this.deletedEvent);
+    const res = await this.receiver.createEvent(this.deletedEvent);
+    return res?.event ?? null;
   }
 
   // expose deleted event for callers that need the full snapshot

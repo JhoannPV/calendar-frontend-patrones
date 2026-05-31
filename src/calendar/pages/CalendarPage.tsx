@@ -14,12 +14,10 @@ import {
 } from '..';
 
 import { localizer, getMessagesES } from '../../helpers';
-import { useAuthStore, useCalendarStore, useUiStore, usePushNotifications } from '../../hooks';
+import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { FabCancelSelect } from '../components/FabCancelSelect';
 
 export const CalendarPage = () => {
-    usePushNotifications();
-
     const { user } = useAuthStore();
     const currentUser = user as User;
     const { events, setActiveEvent, startLoadingEvents } = useCalendarStore();

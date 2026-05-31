@@ -1,6 +1,7 @@
 export interface User {
     id: string;
     name: string;
+    email?: string;
 }
 
 // src/calendar/types/CalendarTypes.ts
