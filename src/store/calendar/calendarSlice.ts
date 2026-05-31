@@ -5,12 +5,22 @@ interface CalendarState {
     events: CalendarCompleteEventData[];
     activeEvent: CalendarCompleteEventData | null;
     lastDeletedEvents: CalendarCompleteEventData[] | null;
+    lastUndoAction: 'delete' | 'update' | 'delete-cascade' | null;
+    undoNotifications: UndoNotification[];
+}
+
+export interface UndoNotification {
+    id: string;
+    action: 'delete' | 'update' | 'delete-cascade';
+    events: CalendarCompleteEventData[];
 }
 
 const initialState: CalendarState = {
     events: [],
     activeEvent: null,
     lastDeletedEvents: null,
+    lastUndoAction: null,
+    undoNotifications: [],
 };
 
 export const calendarSlice = createSlice({
@@ -59,9 +69,26 @@ export const calendarSlice = createSlice({
             state.lastDeletedEvents = payload;
         },
 
+        onPushUndoNotification: (state, { payload }: PayloadAction<UndoNotification>) => {
+            state.undoNotifications.push(payload);
+            state.lastDeletedEvents = payload.events;
+            state.lastUndoAction = payload.action;
+        },
+
+        onRemoveUndoNotification: (state, { payload: notificationId }: PayloadAction<string>) => {
+            state.undoNotifications = state.undoNotifications.filter(item => item.id !== notificationId);
+        },
+
+        // Guarda el tipo de acción que se puede deshacer
+        onSetUndoAction: (state, { payload }: PayloadAction<'delete' | 'update' | 'delete-cascade'>) => {
+            state.lastUndoAction = payload;
+        },
+
         // Limpia el arreglo de eventos eliminados
         onClearDeletedEvents: (state) => {
             state.lastDeletedEvents = null;
+            state.lastUndoAction = null;
+            state.undoNotifications = [];
         },
 
         // Elimina múltiples eventos por id
@@ -93,6 +120,9 @@ export const {
     onDeleteEvent,
     onDeleteEventById,
     onSetDeletedEvents,
+    onPushUndoNotification,
+    onRemoveUndoNotification,
+    onSetUndoAction,
     onClearDeletedEvents,
     onRemoveEventsByIds,
     onLoadEvents,

@@ -8,6 +8,7 @@ import {
     FabAddNew,
     FabDelete,
     Navbar,
+    UndoDeletedEventsToast,
     type CalendarCompleteEventData,
     type User,
 } from '..';
@@ -92,6 +93,7 @@ export const CalendarPage = () => {
                 onView={onViewChanged}
             />
             <CalendarModal />
+            <UndoDeletedEventsToast />
             <FabAddNew />
             <FabDelete />
             <FabCancelSelect />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { CalendarEventCard, CalendarEventCardComponent, CalendarModal, categories, DarkThemeImplementor, LightThemeImplementor, type CalendarCompleteEventData, type CategoryKey, type IThemeImplementor, type User } from '..';
+import { CalendarEventCard, CalendarEventCardComponent, CalendarModal, categories, DarkThemeImplementor, LightThemeImplementor, UndoDeletedEventsToast, type CalendarCompleteEventData, type CategoryKey, type IThemeImplementor, type User } from '..';
 import { useAuthStore, useCalendarStore, useUiStore } from '../../hooks';
 import { Navbar } from '../components/Navbar';
 import { CompositeNode } from '../composite/composite-node';
@@ -136,6 +136,7 @@ export const MyEventsPage = () => {
         <>
             <Navbar />
             <CalendarModal />
+            <UndoDeletedEventsToast />
             <div className="container mt-4">
 
                 {/* CABECERA */}

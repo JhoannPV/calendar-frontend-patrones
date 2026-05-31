@@ -1,5 +1,3 @@
-// src/calendar/components/CalendarModal.tsx
-
 import { addHours, differenceInSeconds } from 'date-fns';
 import {
     useEffect, useMemo, useRef, useState,

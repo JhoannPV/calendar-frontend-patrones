@@ -1,11 +1,13 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useCallback } from "react";
 import type { ErrorResponse, RootState } from ".";
-import { onAddNewEvent, onDeleteEvent, onLoadEvents, onSetActiveEvent, onUpdateEvent, onDeleteEventById, onSetDeletedEvents, onRemoveEventsByIds } from "../store";
+import { onAddNewEvent, onDeleteEvent, onLoadEvents, onSetActiveEvent, onUpdateEvent, onDeleteEventById, onPushUndoNotification, onRemoveUndoNotification, onRemoveEventsByIds, onClearDeletedEvents } from "../store";
 import type { CalendarCompleteEventData } from "../calendar";
 import { convertEventsToDateEvents } from "../helpers";
 import Swal from "sweetalert2";
 import { CalendarApi } from "../api";
+import { EventsCommandReceiver, CommandManager, UpdateEventCommand, DeleteEventCommand, DeleteEventCascadeCommand } from "../calendar/command";
+import type { UndoNotification } from "../store/calendar/calendarSlice";
 
 type EventFromApi = CalendarCompleteEventData & { parentId?: string | null };
 
@@ -14,10 +16,80 @@ const remapPadre = (event: EventFromApi): CalendarCompleteEventData => ({
     padre: event.parentId ?? event.padre ?? null,
 });
 
+// Command infra (shared)
+const receiver = new EventsCommandReceiver();
+const commandManager = new CommandManager();
+
+const createUndoNotification = (action: UndoNotification['action'], events: CalendarCompleteEventData[]): UndoNotification => ({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    action,
+    events,
+});
+
 export const useCalendarStore = () => {
     const api = CalendarApi.getInstance();
     const dispatch = useDispatch();
-    const { events, activeEvent } = useSelector((state: RootState) => state.calendar);
+    const { events, activeEvent, lastDeletedEvents, lastUndoAction, undoNotifications } = useSelector((state: RootState) => state.calendar);
+
+    const recreateCascade = async (deletedEvents: CalendarCompleteEventData[]) => {
+        const pending = [...deletedEvents];
+        const createdIdMap = new Map<string, string>();
+
+        while (pending.length) {
+            let progressed = false;
+
+            for (let i = pending.length - 1; i >= 0; i--) {
+                const original = pending[i];
+                const originalParentId = original.padre ?? null;
+
+                if (originalParentId && !createdIdMap.has(originalParentId)) {
+                    continue;
+                }
+
+                const remappedParentId = originalParentId
+                    ? createdIdMap.get(originalParentId) ?? null
+                    : null;
+
+                const recreated = await receiver.createEvent({
+                    ...original,
+                    padre: remappedParentId,
+                });
+
+                if (original.id && recreated.id) {
+                    createdIdMap.set(original.id, recreated.id);
+                }
+
+                pending.splice(i, 1);
+                progressed = true;
+            }
+
+            if (!progressed) {
+                throw new Error('Unable to restore cascade events due to parent dependency mismatch');
+            }
+        }
+    };
+
+    const applyUndoNotification = async (notification: UndoNotification) => {
+        if (!notification.events.length) return;
+
+        if (notification.action === 'update') {
+            const previousEvent = notification.events[0];
+            const restored = await receiver.updateEvent(previousEvent);
+            dispatch(onUpdateEvent(restored));
+            await startLoadingEvents();
+            return;
+        }
+
+        if (notification.action === 'delete-cascade') {
+            await recreateCascade(notification.events);
+            await startLoadingEvents();
+            return;
+        }
+
+        const deletedEvent = notification.events[0];
+        await receiver.createEvent(deletedEvent);
+        await startLoadingEvents();
+    };
 
     const setActiveEvent = (calendarEvent: CalendarCompleteEventData | null) => {
         dispatch(onSetActiveEvent(calendarEvent));
@@ -25,25 +97,21 @@ export const useCalendarStore = () => {
 
     const startSavingEvent = async (calendarEvent: CalendarCompleteEventData) => {
         try {
-            const payload = {
-                ...calendarEvent,
-                parentId: calendarEvent.padre ?? null,
-            };
-
             if (calendarEvent.id) {
-                const { data } = await api.put(`/events/update-event/${calendarEvent.id}`, payload);
-                dispatch(onUpdateEvent(remapPadre({
-                    ...data.event,
-                    start: data.event.start ? new Date(data.event.start) : null,
-                    end: data.event.end ? new Date(data.event.end) : null,
-                })));
+                // Use Command pattern for updates
+                const previous = (activeEvent as CalendarCompleteEventData) ?? events.find((e: CalendarCompleteEventData) => e.id === calendarEvent.id) ?? calendarEvent;
+                const cmd = new UpdateEventCommand(receiver, previous, calendarEvent);
+                // register and execute
+                commandManager.add("update-event", cmd);
+                const updated = await commandManager.select("update-event");
+                if (updated) {
+                    const notification = createUndoNotification('update', [previous]);
+                    dispatch(onPushUndoNotification(notification));
+                    dispatch(onUpdateEvent(updated));
+                }
             } else {
-                const { data } = await api.post('/events/create-event', payload);
-                dispatch(onAddNewEvent(remapPadre({
-                    ...data.event,
-                    start: data.event.start ? new Date(data.event.start) : null,
-                    end: data.event.end ? new Date(data.event.end) : null,
-                })));
+                const created = await receiver.createEvent(calendarEvent);
+                dispatch(onAddNewEvent(created));
             }
 
             // 🔥 Recargar para reflejar el árbol completo actualizado
@@ -58,9 +126,17 @@ export const useCalendarStore = () => {
     // Elimina el activeEvent (usado desde CalendarPage con FabDelete)
     const startDeletingEvent = async () => {
         try {
-            const activeEventId = activeEvent as CalendarCompleteEventData | null;
-            const { data } = await api.delete(`/events/delete-event/${activeEventId?.id}`);
-            Swal.fire('Evento eliminado', data.event.msg, 'success');
+            const activeEventId = (activeEvent as CalendarCompleteEventData | null)?.id;
+            if (!activeEventId) return;
+
+            const cmd = new DeleteEventCommand(receiver, activeEventId);
+            commandManager.add("delete-event", cmd);
+            await commandManager.select("delete-event");
+
+            // snapshot for undo
+            const snapshot = cmd.getDeletedEvent();
+            if (snapshot) dispatch(onPushUndoNotification(createUndoNotification('delete', [snapshot])));
+
             dispatch(onDeleteEvent());
         } catch (error) {
             const { response } = error as ErrorResponse;
@@ -84,10 +160,15 @@ export const useCalendarStore = () => {
         if (!confirm.isConfirmed) return;
 
         try {
-            const { data } = await api.delete(`/events/delete-event/${eventId}`);
+            const cmd = new DeleteEventCommand(receiver, eventId);
+            commandManager.add("delete-event", cmd);
+            await commandManager.select("delete-event");
+
+            const snapshot = cmd.getDeletedEvent();
+            if (snapshot) dispatch(onPushUndoNotification(createUndoNotification('delete', [snapshot])));
+
             // Eliminar del store el evento y todos sus posibles hijos
             dispatch(onDeleteEventById(eventId));
-            Swal.fire('Eliminado', data.event.msg, 'success');
         } catch (error) {
             const { response } = error as ErrorResponse;
             Swal.fire('Error al Eliminar', response.data?.error, 'error');
@@ -110,41 +191,57 @@ export const useCalendarStore = () => {
         if (!confirm.isConfirmed) return;
 
         try {
-            const { data } = await api.delete(`/events/delete-event-cascade/${eventId}`);
+            const cmd = new DeleteEventCascadeCommand(receiver, eventId);
+            commandManager.add("delete-event-cascade", cmd);
+            await commandManager.select("delete-event-cascade");
 
-            // data.events is an array of deleted events (decorated)
-            const deleted: CalendarCompleteEventData[] = (
-                (data.events ?? []) as EventFromApi[]
-            ).map(ev => {
-                let s: Date | null;
-                if (ev.start) {
-                    s = typeof ev.start === 'string' ? new Date(ev.start) : ev.start as Date;
-                } else s = null;
+            const deleted = cmd.getDeletedEvents();
+            dispatch(onPushUndoNotification(createUndoNotification('delete-cascade', deleted)));
 
-                let e: Date | null;
-                if (ev.end) {
-                    e = typeof ev.end === 'string' ? new Date(ev.end) : ev.end as Date;
-                } else e = null;
-
-                return remapPadre({
-                    ...ev,
-                    start: s,
-                    end: e,
-                });
-            });
-
-            // Guardar en store el arreglo de elementos eliminados para un posible undo futuro
-            dispatch(onSetDeletedEvents(deleted));
-
-            // Eliminar los ids del store para actualizar UI inmediatamente
             const ids = deleted.map(d => d.id!).filter(Boolean) as string[];
             dispatch(onRemoveEventsByIds(ids));
-
-            Swal.fire('Eliminados', data.msg || 'Eventos eliminados', 'success');
         } catch (error) {
             const { response } = error as ErrorResponse;
             Swal.fire('Error al Eliminar', response.data?.error, 'error');
         }
+    };
+
+    const undoLastAction = async () => {
+        const lastNotification = undoNotifications[undoNotifications.length - 1];
+        if (!lastNotification) return;
+
+        try {
+            await applyUndoNotification(lastNotification);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            dispatch(onRemoveUndoNotification(lastNotification.id));
+            commandManager.clear();
+        }
+    };
+
+    const undoNotification = async (notificationId: string) => {
+        const notification = undoNotifications.find((item: UndoNotification) => item.id === notificationId);
+        if (!notification) return;
+
+        try {
+            await applyUndoNotification(notification);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            dispatch(onRemoveUndoNotification(notificationId));
+            commandManager.clear();
+        }
+    };
+
+    const clearUndoState = (notificationId?: string) => {
+        commandManager.clear();
+        if (notificationId) {
+            dispatch(onRemoveUndoNotification(notificationId));
+            return;
+        }
+
+        dispatch(onClearDeletedEvents());
     };
 
     const startLoadingEvents = useCallback(async () => {
@@ -168,6 +265,12 @@ export const useCalendarStore = () => {
         startDeletingEvent,
         startDeletingEventById,
         startDeletingEventCascade,
+        undoLastAction,
+        undoNotification,
+        clearUndoState,
+        lastDeletedEvents,
+        lastUndoAction,
+        undoNotifications,
         startLoadingEvents,
     };
 };
