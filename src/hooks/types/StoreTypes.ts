@@ -16,6 +16,7 @@ export interface RegisterParams {
 }
 
 export interface ErrorResponse {
+    data: any;
     response: {
         data?: {
             error: string
