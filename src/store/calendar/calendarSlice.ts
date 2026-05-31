@@ -2,13 +2,25 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CalendarCompleteEventData } from '../../calendar';
 
 interface CalendarState {
-    events:      CalendarCompleteEventData[];
+    events: CalendarCompleteEventData[];
     activeEvent: CalendarCompleteEventData | null;
+    lastDeletedEvents: CalendarCompleteEventData[] | null;
+    lastUndoAction: 'delete' | 'update' | 'delete-cascade' | null;
+    undoNotifications: UndoNotification[];
+}
+
+export interface UndoNotification {
+    id: string;
+    action: 'delete' | 'update' | 'delete-cascade';
+    events: CalendarCompleteEventData[];
 }
 
 const initialState: CalendarState = {
-    events:      [],
+    events: [],
     activeEvent: null,
+    lastDeletedEvents: null,
+    lastUndoAction: null,
+    undoNotifications: [],
 };
 
 export const calendarSlice = createSlice({
@@ -52,14 +64,50 @@ export const calendarSlice = createSlice({
             }
         },
 
+        // Guarda el arreglo de eventos eliminados (para undo futuro)
+        onSetDeletedEvents: (state, { payload }: PayloadAction<CalendarCompleteEventData[]>) => {
+            state.lastDeletedEvents = payload;
+        },
+
+        onPushUndoNotification: (state, { payload }: PayloadAction<UndoNotification>) => {
+            state.undoNotifications.push(payload);
+            state.lastDeletedEvents = payload.events;
+            state.lastUndoAction = payload.action;
+        },
+
+        onRemoveUndoNotification: (state, { payload: notificationId }: PayloadAction<string>) => {
+            state.undoNotifications = state.undoNotifications.filter(item => item.id !== notificationId);
+        },
+
+        // Guarda el tipo de acción que se puede deshacer
+        onSetUndoAction: (state, { payload }: PayloadAction<'delete' | 'update' | 'delete-cascade'>) => {
+            state.lastUndoAction = payload;
+        },
+
+        // Limpia el arreglo de eventos eliminados
+        onClearDeletedEvents: (state) => {
+            state.lastDeletedEvents = null;
+            state.lastUndoAction = null;
+            state.undoNotifications = [];
+        },
+
+        // Elimina múltiples eventos por id
+        onRemoveEventsByIds: (state, { payload: ids }: PayloadAction<string[]>) => {
+            const idSet = new Set(ids);
+            state.events = state.events.filter(e => !idSet.has(e.id ?? ''));
+            if (state.activeEvent && idSet.has(state.activeEvent.id ?? '')) {
+                state.activeEvent = null;
+            }
+        },
+
         onLoadEvents: (state, { payload }: PayloadAction<CalendarCompleteEventData[]>) => {
-            state.events      = payload;
+            state.events = payload;
             state.activeEvent = null;
         },
 
         // Limpia todo al hacer logout
         onLogoutCalendar: (state) => {
-            state.events      = [];
+            state.events = [];
             state.activeEvent = null;
         },
     },
@@ -71,6 +119,12 @@ export const {
     onUpdateEvent,
     onDeleteEvent,
     onDeleteEventById,
+    onSetDeletedEvents,
+    onPushUndoNotification,
+    onRemoveUndoNotification,
+    onSetUndoAction,
+    onClearDeletedEvents,
+    onRemoveEventsByIds,
     onLoadEvents,
     onLogoutCalendar,
 } = calendarSlice.actions;

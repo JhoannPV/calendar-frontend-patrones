@@ -1,5 +1,4 @@
-import type { CalendarEventCardComponent } from "../..";
-import { categories, type CategoryKey } from "../../..";
+import { CalendarEventCardComponent, categories, type CategoryKey } from "../../..";
 
 export const CalendarEventCard = ({ card }: { card: CalendarEventCardComponent }) => {
     const theme = card.getTheme();
