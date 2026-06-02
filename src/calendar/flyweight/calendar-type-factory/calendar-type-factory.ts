@@ -1,13 +1,18 @@
-import { CalendarTypeFlyweight, type CategoryKey } from "../..";
+import { CalendarTypeFlyweight, type ICalendarTypeFlyweight } from "../..";
+
+const buildCalendarTypeKey = (data: ICalendarTypeFlyweight): string => {
+    return `${data.category}:${data.reminderStrategy}`;
+};
 
 export class CalendarTypeFactory {
-    private readonly calendarTypes: Map<CategoryKey, CalendarTypeFlyweight> = new Map();
+    private readonly calendarTypes: Map<string, CalendarTypeFlyweight> = new Map();
 
-    getCalendarType(category: CategoryKey): CalendarTypeFlyweight {
-        let calendarType = this.calendarTypes.get(category);
+    getCalendarType(data: ICalendarTypeFlyweight): CalendarTypeFlyweight {
+        const key = buildCalendarTypeKey(data);
+        let calendarType = this.calendarTypes.get(key);
         if (!calendarType) {
-            calendarType = new CalendarTypeFlyweight({ category });
-            this.calendarTypes.set(category, calendarType);
+            calendarType = new CalendarTypeFlyweight(data);
+            this.calendarTypes.set(key, calendarType);
         }
         return calendarType;
     }

@@ -12,7 +12,8 @@ export class CalendarTypeEvent {
     getEventComplete(): CalendarCompleteEventData {
         return {
             ...this.calendarEventData,
-            category: this.calendarTypeFlyweight.getCategory().category
-        }
+            category: this.calendarTypeFlyweight.getData().category,
+            reminderStrategy: this.calendarTypeFlyweight.getData().reminderStrategy,
+        };
     }
 }

@@ -4,6 +4,8 @@ export interface User {
     email?: string;
 }
 
+export type ReminderStrategyKey = '30min' | '1h';
+
 // src/calendar/types/CalendarTypes.ts
 export interface CalendarEventData {
     id?: string;
@@ -14,6 +16,7 @@ export interface CalendarEventData {
     bgColor?: string;
     padre?: string | null;
     user?: User;
+    reminderStrategy?: ReminderStrategyKey;
 }
 
 export interface CalendarCompleteEventData {
@@ -25,6 +28,7 @@ export interface CalendarCompleteEventData {
     bgColor?: string;
     user?: User;
     category: CategoryKey;
+    reminderStrategy: ReminderStrategyKey;
     padre?: string | null;  // COMPOSITE
 }
 

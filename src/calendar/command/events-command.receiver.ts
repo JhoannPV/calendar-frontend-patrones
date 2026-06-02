@@ -18,6 +18,7 @@ export class EventsCommandReceiver {
       padre: event.padre ?? parentId ?? null,
       start: event.start ? new Date(event.start as string | Date) : null,
       end: event.end ? new Date(event.end as string | Date) : null,
+      reminderStrategy: event.reminderStrategy ?? '30min',
     };
   }
 

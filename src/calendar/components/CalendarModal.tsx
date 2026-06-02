@@ -1,5 +1,3 @@
-// src/calendar/components/CalendarModal.tsx
-
 import { addHours, differenceInSeconds } from 'date-fns';
 import {
     useEffect, useMemo, useRef, useState,
@@ -23,6 +21,7 @@ import {
     type CalendarCompleteEventData,
     type CalendarEventData,
     type CategoryKey,
+    type ICalendarTypeFlyweight,
 } from '..';
 
 registerLocale('es', es);
@@ -49,6 +48,10 @@ export const CalendarModal = () => {
 
     const [formSubmitted, setFormSubmitted] = useState(false);
     const calendarTypeFactoryRef = useRef(new CalendarTypeFactory());
+    const [calendarTypeData, setCalendarTypeData] = useState<ICalendarTypeFlyweight>({
+        category: 'general',
+        reminderStrategy: '30min',
+    });
 
     const [formValues, setFormValues] = useState<CalendarEventData>({
         title: '',
@@ -56,8 +59,6 @@ export const CalendarModal = () => {
         start: new Date(),
         end: addHours(new Date(), 2),
     });
-
-    const [category, setCategory] = useState<CategoryKey>('general');
 
     // COMPOSITE — padre seleccionado
     const [selectedPadre, setSelectedPadre] = useState<string>('');
@@ -93,13 +94,15 @@ export const CalendarModal = () => {
     useEffect(() => {
         if (activeEvent !== null) {
             const timeOut = setTimeout(() => {
-                setFormValues({ ...activeEvent });
-                setCategory((activeEvent.category as CategoryKey) ?? 'general');
+                setFormValues({
+                    ...activeEvent,
+                });
+                setCalendarTypeData({
+                    category: (activeEvent.category as CategoryKey) ?? 'general',
+                    reminderStrategy: activeEvent.reminderStrategy ?? '30min',
+                });
                 setSelectedPadre(activeEvent.padre ?? '');
                 setActAsParent(activeEventIsParent);
-                if (activeEventIsParent) {
-                    setCategory('general');
-                }
             }, 0);
             return () => clearTimeout(timeOut);
         }
@@ -110,7 +113,14 @@ export const CalendarModal = () => {
     };
 
     const onCategoryChange = ({ target }: ChangeEvent<HTMLSelectElement>) => {
-        setCategory(target.value as CategoryKey);
+        setCalendarTypeData({ ...calendarTypeData, category: target.value as CategoryKey });
+    };
+
+    const onReminderStrategyChange = ({ target }: ChangeEvent<HTMLSelectElement>) => {
+        setCalendarTypeData({
+            ...calendarTypeData,
+            reminderStrategy: target.value as ICalendarTypeFlyweight['reminderStrategy'],
+        });
     };
 
     const onDateChange = (event: Date | null, changing: StartOrEnd) => {
@@ -120,7 +130,7 @@ export const CalendarModal = () => {
     const onActAsParentChange = (checked: boolean) => {
         setActAsParent(checked);
         if (checked) {
-            setCategory('general');
+            setCalendarTypeData({ ...calendarTypeData, category: 'general' });
         }
     };
 
@@ -129,6 +139,7 @@ export const CalendarModal = () => {
         setActiveEvent(null);
         setSelectedPadre('');
         setActAsParent(false);
+        setCalendarTypeData({ category: 'general', reminderStrategy: '30min' });
     };
 
     // Mostrar fechas cuando:
@@ -162,7 +173,7 @@ export const CalendarModal = () => {
             }
         }
 
-        const calendarType = calendarTypeFactoryRef.current.getCalendarType(category);
+        const calendarType = calendarTypeFactoryRef.current.getCalendarType(calendarTypeData);
 
         const builderEvent = new DirectorEventBuilder().createEventComplete()
             .setTitle(formValues.title)
@@ -297,7 +308,7 @@ export const CalendarModal = () => {
                     <select
                         className="form-select"
                         name="category"
-                        value={category}
+                        value={calendarTypeData.category}
                         onChange={onCategoryChange}
                         disabled={actAsParent}
                     >
@@ -309,6 +320,22 @@ export const CalendarModal = () => {
                     </select>
                     <small className="form-text text-muted">
                         {actAsParent ? 'Los eventos mayores usan la categoría General por defecto' : 'Clasifica el evento'}
+                    </small>
+                </div>
+
+                <div className="form-group mb-3">
+                    <label>Recordatorio</label>
+                    <select
+                        className="form-select"
+                        name="reminderStrategy"
+                        value={calendarTypeData.reminderStrategy}
+                        onChange={onReminderStrategyChange}
+                    >
+                        <option value="30min">30 minutos antes</option>
+                        <option value="1h">1 hora antes</option>
+                    </select>
+                    <small className="form-text text-muted">
+                        Define cuándo se enviará la notificación del evento
                     </small>
                 </div>
 

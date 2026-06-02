@@ -1,20 +1,18 @@
-import type { CategoryKey } from "../..";
+import type { CategoryKey, ReminderStrategyKey } from "../..";
 
-interface ICalendarTypeFlyweight {
+export interface ICalendarTypeFlyweight {
     readonly category: CategoryKey;
+    readonly reminderStrategy: ReminderStrategyKey;
 }
 
 export class CalendarTypeFlyweight {
-    getEventComplete(): CalendarTypeFlyweight {
-        throw new Error('Method not implemented.');
-    }
     private readonly data: ICalendarTypeFlyweight;
 
     constructor(data: ICalendarTypeFlyweight) {
         this.data = data;
     }
 
-    getCategory(): ICalendarTypeFlyweight {
+    getData(): ICalendarTypeFlyweight {
         return this.data;
     }
 }
